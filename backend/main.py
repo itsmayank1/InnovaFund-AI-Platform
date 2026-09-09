@@ -48,9 +48,7 @@ app.include_router(dataset_routes.router, prefix=settings.API_PREFIX)
 app.include_router(admin_routes.router, prefix=settings.API_PREFIX)
 app.include_router(grant_matching_routes.router, prefix=settings.API_PREFIX)
 
-#added by member 1 
-
-
+# added by member 1
 app.include_router(patent_routes.router, prefix=settings.API_PREFIX)
 
 
@@ -65,13 +63,17 @@ def startup_db_seed():
             ("innovation_manager", "University Tech Transfer & R&D Directors"),
             ("administrator", "Platform IT Administrators")
         ]
+
         for role_name, desc in roles:
             existing = db.query(Role).filter(Role.name == role_name).first()
             if not existing:
                 db.add(Role(name=role_name, description=desc))
-        
+
         # Seed default admin account
-        admin = db.query(User).filter(User.email == "admin@researchsphere.ai").first()
+        admin = db.query(User).filter(
+            User.email == "admin@researchsphere.ai"
+        ).first()
+
         if not admin:
             admin = User(
                 full_name="System Administrator",
@@ -81,11 +83,15 @@ def startup_db_seed():
                 is_active=True
             )
             db.add(admin)
+
         db.commit()
+
     except Exception as e:
         logger.warning(f"Startup DB seed exception: {e}")
+
     finally:
         db.close()
+
 
 @app.get("/")
 def read_root():
@@ -96,22 +102,31 @@ def read_root():
         "docs_url": "/docs"
     }
 
+
 @app.get("/health")
 def health_check():
-    health = {"status": "ok", "postgres": "disconnected", "mongodb": "disconnected"}
+    health = {
+        "status": "ok",
+        "postgres": "disconnected",
+        "mongodb": "disconnected"
+    }
+
     try:
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db.close()
         health["postgres"] = "connected"
+
     except Exception as e:
         health["postgres"] = f"error: {str(e)}"
 
     mongo = get_mongo_db()
+
     if mongo is not None:
         try:
             mongo.command("ping")
             health["mongodb"] = "connected"
+
         except Exception as e:
             health["mongodb"] = f"error: {str(e)}"
 
@@ -119,17 +134,36 @@ def health_check():
 
 
 # --- ADDED BY MEMBER 1 (Milestone 2) ---
+
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from database import get_db
-from models import ResearchProfile, Recommendation, FundingOpportunity
-from schemas import RecommendationOut, GenerateRecommendationsRequest, ProfileResponse as ResearchProfileResponse
-from recommendation_engine import compute_score, build_profile_text,get_opportunity_amount
+
+from models import (
+    ResearchProfile,
+    Recommendation,
+    FundingOpportunity,
+    ResearchInterest
+)
+
+from schemas import (
+    RecommendationOut,
+    GenerateRecommendationsRequest,
+    ProfileResponse as ResearchProfileResponse,
+    GrantMatchRequest
+)
+
+from recommendation_engine import (
+    compute_score,
+    build_profile_text,
+    get_opportunity_amount
+)
+
 from dependencies import get_current_user
 
-"""from services.grant_matching_service import GrantMatchingRulesEngine
-from schemas import GrantMatchRequest
-from models import ResearchInterest"""
+from services.grant_matching_service import GrantMatchingRulesEngine
+
 
 @app.delete("/profile")
 def delete_profile(
@@ -149,15 +183,25 @@ def delete_profile(
     db.delete(profile)
     db.commit()
 
-    return {"message": "Research profile deleted successfully."}   
+    return {
+        "message": "Research profile deleted successfully."
+    }
 
-@app.get("/profiles", response_model=list[ResearchProfileResponse])
+
+@app.get(
+    "/profiles",
+    response_model=list[ResearchProfileResponse]
+)
 def list_profiles(
     db: Session = Depends(get_db),
 ):
     return db.query(ResearchProfile).all()
 
-@app.get("/profiles/domain/{domain}", response_model=list[ResearchProfileResponse])
+
+@app.get(
+    "/profiles/domain/{domain}",
+    response_model=list[ResearchProfileResponse]
+)
 def search_by_domain(
     domain: str,
     db: Session = Depends(get_db),
@@ -168,7 +212,11 @@ def search_by_domain(
 
     return profiles
 
-@app.get("/profiles/keyword/{keyword}", response_model=list[ResearchProfileResponse])
+
+@app.get(
+    "/profiles/keyword/{keyword}",
+    response_model=list[ResearchProfileResponse]
+)
 def search_by_keyword(
     keyword: str,
     db: Session = Depends(get_db),
@@ -179,35 +227,87 @@ def search_by_keyword(
 
     return profiles
 
-@app.post("/recommendations/generate", response_model=list[RecommendationOut])
-def generate_recommendations(req: GenerateRecommendationsRequest, db: Session = Depends(get_db)):
-    profile = db.query(ResearchProfile).filter(ResearchProfile.user_id == req.researcher_id).first()
+
+@app.post(
+    "/recommendations/generate",
+    response_model=list[RecommendationOut]
+)
+def generate_recommendations(
+    req: GenerateRecommendationsRequest,
+    db: Session = Depends(get_db)
+):
+
+    profile = db.query(ResearchProfile).filter(
+        ResearchProfile.user_id == req.researcher_id
+    ).first()
+
     if not profile:
-        raise HTTPException(status_code=404, detail="Research profile not found for this researcher")
+        raise HTTPException(
+            status_code=404,
+            detail="Research profile not found for this researcher"
+        )
 
     opportunities = db.query(FundingOpportunity).all()
+
     if not opportunities:
-        raise HTTPException(status_code=404, detail="No funding opportunities available")
+        raise HTTPException(
+            status_code=404,
+            detail="No funding opportunities available"
+        )
 
     profile_text = build_profile_text(profile)
-    amounts = [get_opportunity_amount(o) for o in opportunities]
-    amounts = [a for a in amounts if a]
-    min_amt, max_amt = (min(amounts), max(amounts)) if amounts else (0, 1)
 
-    db.query(Recommendation).filter(Recommendation.researcher_id == req.researcher_id).delete()
+    amounts = [
+        get_opportunity_amount(o)
+        for o in opportunities
+    ]
 
-        # --- Member 2 integration: real eligibility check ---
-    """matching_engine = GrantMatchingRulesEngine()
+    amounts = [
+        a for a in amounts
+        if a
+    ]
 
-    interests = db.query(ResearchInterest).filter(ResearchInterest.profile_id == profile.id).all()
-    research_domains = [i.domain_name for i in interests]
+    min_amt, max_amt = (
+        (min(amounts), max(amounts))
+        if amounts
+        else (0, 1)
+    )
+
+    db.query(Recommendation).filter(
+        Recommendation.researcher_id == req.researcher_id
+    ).delete()
+
+    # --- Member 2 integration: real eligibility check ---
+
+    matching_engine = GrantMatchingRulesEngine()
+
+    interests = db.query(ResearchInterest).filter(
+        ResearchInterest.profile_id == profile.id
+    ).all()
+
+    research_domains = [
+        i.domain_name
+        for i in interests
+    ]
+
     if not research_domains:
-        research_domains = ["Artificial Intelligence", "Biotechnology", "Climate & CleanEnergy"]
+        research_domains = [
+            "Artificial Intelligence",
+            "Biotechnology",
+            "Climate & CleanEnergy"
+        ]
 
     career_stage = "Early-Career"
-    user_role = getattr(profile.user, "role", None)
+
+    user_role = getattr(
+        profile.user,
+        "role",
+        None
+    )
+
     if user_role == "startup_founder":
         career_stage = "Startup/SME"
+
     elif user_role == "innovation_manager":
         career_stage = "Senior/Lead"
 
@@ -216,53 +316,120 @@ def generate_recommendations(req: GenerateRecommendationsRequest, db: Session = 
         research_domains=research_domains,
         career_stage=career_stage,
         geography="Global",
-        funding_types=["Grant", "Fellowship", "Accelerator"],
+        funding_types=[
+            "Grant",
+            "Fellowship",
+            "Accelerator"
+        ],
         include_expired=False,
-    )"""
+    )
+
     results = []
+
     for opp in opportunities:
-        scores = compute_score(profile_text, opp, min_amt, max_amt)
+
+        # Mayank's eligibility check
+        eligibility_result = matching_engine.evaluate_opportunity(
+            opp,
+            match_request
+        )
+
+        eligible_value = (
+            1
+            if eligibility_result.is_eligible
+            else 0
+        )
+
+        # Your recommendation engine
+        scores = compute_score(
+            profile_text,
+            opp,
+            min_amt,
+            max_amt
+        )
+
         rec = Recommendation(
             researcher_id=req.researcher_id,
             opportunity_id=opp.id,
-            eligible=1,
+            eligible=eligible_value,
             **scores,
         )
+
         db.add(rec)
-        results.append((opp, rec))
+
+        results.append(
+            (opp, rec)
+        )
 
     db.commit()
 
-    ranked = sorted(results, key=lambda pair: pair[1].score, reverse=True)[: req.top_n]
+    ranked = sorted(
+        results,
+        key=lambda pair: pair[1].score,
+        reverse=True
+    )[:req.top_n]
+
     return [
         RecommendationOut(
-            opportunity_id=opp.id, title=opp.title, agency=opp.agency, amount=opp.grant_amount,
-            deadline=opp.deadline, url=opp.external_link, score=rec.score,
-            domain_fit_score=rec.domain_fit_score, deadline_score=rec.deadline_score,
-            amount_score=rec.amount_score, success_rate_score=rec.success_rate_score,
-            eligible=bool(rec.eligible), reasoning=rec.reasoning,
+            opportunity_id=opp.id,
+            title=opp.title,
+            agency=opp.agency,
+            amount=opp.grant_amount,
+            deadline=opp.deadline,
+            url=opp.external_link,
+            score=rec.score,
+            domain_fit_score=rec.domain_fit_score,
+            deadline_score=rec.deadline_score,
+            amount_score=rec.amount_score,
+            success_rate_score=rec.success_rate_score,
+            eligible=bool(rec.eligible),
+            reasoning=rec.reasoning,
         )
         for opp, rec in ranked
     ]
 
-@app.get("/recommendations/{researcher_id}", response_model=list[RecommendationOut])
-def get_recommendations(researcher_id: int, db: Session = Depends(get_db)):
+
+@app.get(
+    "/recommendations/{researcher_id}",
+    response_model=list[RecommendationOut]
+)
+def get_recommendations(
+    researcher_id: int,
+    db: Session = Depends(get_db)
+):
+
     recs = (
         db.query(Recommendation)
-        .filter(Recommendation.researcher_id == researcher_id)
-        .order_by(Recommendation.score.desc())
+        .filter(
+            Recommendation.researcher_id == researcher_id
+        )
+        .order_by(
+            Recommendation.score.desc()
+        )
         .all()
     )
+
     if not recs:
-        raise HTTPException(status_code=404, detail="No recommendations found. Call /generate first.")
+        raise HTTPException(
+            status_code=404,
+            detail="No recommendations found. Call /generate first."
+        )
 
     return [
         RecommendationOut(
-            opportunity_id=r.opportunity.id, title=r.opportunity.title, agency=r.opportunity.agency,
-            amount=r.opportunity.amount, deadline=r.opportunity.deadline, url=r.opportunity.url,
-            score=r.score, domain_fit_score=r.domain_fit_score, deadline_score=r.deadline_score,
-            amount_score=r.amount_score, success_rate_score=r.success_rate_score,
-            eligible=bool(r.eligible), reasoning=r.reasoning,
+            opportunity_id=r.opportunity.id,
+            title=r.opportunity.title,
+            agency=r.opportunity.agency,
+            amount=r.opportunity.amount,
+            deadline=r.opportunity.deadline,
+            url=r.opportunity.url,
+            score=r.score,
+            domain_fit_score=r.domain_fit_score,
+            deadline_score=r.deadline_score,
+            amount_score=r.amount_score,
+            success_rate_score=r.success_rate_score,
+            eligible=bool(r.eligible),
+            reasoning=r.reasoning,
         )
         for r in recs
     ]
