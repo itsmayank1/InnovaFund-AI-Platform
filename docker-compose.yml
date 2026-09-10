@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: funding_innovation_platform
+      POSTGRES_DB: innovafund_db
     ports:
       - "5433:5432"
     volumes:
@@ -40,8 +40,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/funding_innovation_platform
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/innovafund_db
       - MONGO_URL=mongodb://mongodb:27017
+      - MONGO_DB_NAME=innovafund_db
       - SECRET_KEY=super-secret-key-change-in-production-innovafund-2026
     depends_on:
       postgres:
