@@ -13,8 +13,15 @@ from config import settings
 from database import engine, SessionLocal, get_mongo_db
 from models import Base, Role, User, Organization
 from auth import hash_password
-from routers import auth_routes, profile_routes, dataset_routes, admin_routes, grant_matching_routes
-
+from routers import (
+    auth_routes,
+    profile_routes,
+    dataset_routes,
+    admin_routes,
+    grant_matching_routes,
+    scoring_routes,
+    commercialization_routes,
+)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -47,6 +54,8 @@ app.include_router(profile_routes.router, prefix=settings.API_PREFIX)
 app.include_router(dataset_routes.router, prefix=settings.API_PREFIX)
 app.include_router(admin_routes.router, prefix=settings.API_PREFIX)
 app.include_router(grant_matching_routes.router, prefix=settings.API_PREFIX)
+app.include_router(scoring_routes.router, prefix=settings.API_PREFIX)
+app.include_router(commercialization_routes.router, prefix=settings.API_PREFIX)
 
 
 @app.on_event("startup")

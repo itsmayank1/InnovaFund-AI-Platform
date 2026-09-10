@@ -1,20 +1,22 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HiChartSquareBar, HiUserCircle, HiBookOpen, HiLightBulb, HiShieldCheck, HiCog, HiChip } from 'react-icons/hi';
+import { HiChartSquareBar, HiUserCircle, HiBookOpen, HiLightBulb, HiShieldCheck, HiCog, HiChip, HiSparkles } from 'react-icons/hi';
 import InnovaLogo from './InnovaLogo';
 
 export default function Sidebar() {
   const { user } = useAuth();
 
   const links = [
-    { to: '/dashboard', icon: <HiChartSquareBar />, label: 'Dashboard' },
-    { to: '/profile', icon: <HiUserCircle />, label: 'Research Profile' },
-    { to: '/publications', icon: <HiBookOpen />, label: 'Publications' },
-    { to: '/patents', icon: <HiLightBulb />, label: 'Patent Landscape' },
-    { to: '/architecture', icon: <HiChip />, label: 'System Architecture' },
-    { to: '/settings', icon: <HiCog />, label: 'Settings' },
-  ];
+  { to: '/dashboard', icon: <HiChartSquareBar />, label: 'Dashboard' },
+  { to: '/profile', icon: <HiUserCircle />, label: 'Research Profile' },
+  { to: '/publications', icon: <HiBookOpen />, label: 'Publications' },
+  { to: '/patents', icon: <HiLightBulb />, label: 'Patent Landscape' },
+  { to: '/recommendations', icon: <HiSparkles />, label: 'Funding Recommendations' },
+  { to: '/innovation-manager', icon: <HiChartSquareBar />, label: 'Innovation Manager' },
+  { to: '/architecture', icon: <HiChip />, label: 'System Architecture' },
+  { to: '/settings', icon: <HiCog />, label: 'Settings' },
+];
 
   return (
     <aside style={{

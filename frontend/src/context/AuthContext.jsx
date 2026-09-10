@@ -1,108 +1,100 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser, loginUser, registerUser, googleLoginUser } from '../api/auth';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useEffect, useState } from "react";
+import { loginUser, registerUser, googleLogin as googleLoginApi } from "../services/authService";
+
+function buildUser(data) {
+  // data is the TokenResponse payload from the backend: { access_token, user_id, full_name, email, role }
+  return {
+    id: data.user_id,
+    full_name: data.full_name,
+    email: data.email,
+    role: data.role,
+  };
+}
 
 const AuthContext = createContext();
 
-const DEFAULT_USER = {
-  id: 1,
-  full_name: 'Research User',
-  email: 'user@innovafund.ai',
-  role: 'researcher',
-  is_active: true
-};
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [role, setRole] = useState(() => user?.role || null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      const savedUserStr = localStorage.getItem('user');
-      let savedUser = null;
-      if (savedUserStr) {
-        try { savedUser = JSON.parse(savedUserStr); } catch (e) {}
-      }
+    setRole(user?.role || null);
+  }, [user]);
 
-      if (token) {
-        try {
-          const userData = await getCurrentUser();
-          const activeUser = userData || savedUser || DEFAULT_USER;
-          setUser(activeUser);
-          localStorage.setItem('user', JSON.stringify(activeUser));
-        } catch (error) {
-          const activeUser = savedUser || DEFAULT_USER;
-          setUser(activeUser);
-        }
-      }
-      setLoading(false);
-    };
-    fetchUser();
-  }, []);
+  const applySession = (data) => {
+    localStorage.setItem("token", data.access_token);
+    const nextUser = buildUser(data);
+    localStorage.setItem("user", JSON.stringify(nextUser));
+    setToken(data.access_token);
+    setUser(nextUser);
+    setRole(nextUser.role);
+  };
 
   const login = async (email, password) => {
-    const data = await loginUser({ email, password });
-    localStorage.setItem('token', data.access_token || 'mock_jwt_token_demo_2026');
-    const userData = await getCurrentUser();
-    const activeUser = userData || {
-      id: data.user_id || 1,
-      full_name: data.full_name || (email ? email.split('@')[0] : 'Research User'),
-      email: email || 'user@innovafund.ai',
-      role: data.role || 'researcher',
-      is_active: true
-    };
-    localStorage.setItem('user', JSON.stringify(activeUser));
-    setUser(activeUser);
-    return activeUser;
+    setLoading(true);
+    try {
+      const data = await loginUser({ email, password });
+      applySession(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const googleLogin = async (payload) => {
-    const data = await googleLoginUser(payload);
-    localStorage.setItem('token', data.access_token || 'mock_jwt_token_demo_2026');
-    const userData = await getCurrentUser();
-    const activeUser = userData || {
-      id: data.user_id || 1,
-      full_name: payload.full_name || data.full_name || (payload.email ? payload.email.split('@')[0] : 'Google User'),
-      email: payload.email || 'user@innovafund.ai',
-      role: payload.role || data.role || 'researcher',
-      is_active: true
-    };
-    localStorage.setItem('user', JSON.stringify(activeUser));
-    setUser(activeUser);
-    return activeUser;
+  const register = async (payload) => {
+    setLoading(true);
+    try {
+      const data = await registerUser(payload);
+      applySession(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const register = async (data) => {
-    const res = await registerUser(data);
-    localStorage.setItem('token', res.access_token || 'mock_jwt_token_demo_2026');
-    const userData = await getCurrentUser();
-    const activeUser = userData || {
-      id: res.user_id || 1,
-      full_name: data.full_name || res.full_name || (data.email ? data.email.split('@')[0] : 'Research User'),
-      email: data.email || 'user@innovafund.ai',
-      role: data.role || 'researcher',
-      is_active: true
-    };
-    localStorage.setItem('user', JSON.stringify(activeUser));
-    setUser(activeUser);
-    return activeUser;
+  const googleLogin = async (credential) => {
+    setLoading(true);
+    try {
+      const data = await googleLoginApi(credential);
+      applySession(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setToken(null);
     setUser(null);
-    navigate('/login');
+    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        user,
+        role,
+        loading,
+        login,
+        register,
+        googleLogin,
+        logout,
+        isAuthenticated: !!token,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
-
+export function useAuth() {
+  return useContext(AuthContext);
+}
