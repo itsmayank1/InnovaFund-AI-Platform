@@ -18,6 +18,7 @@ import './App.css';
 import RecommendationsPage from './pages/RecommendationsPage';
 import InnovationManagerPage from './pages/InnovationManagerPage';
 import ScoringPage from './pages/ScoringPage';
+import Trends from './pages/Trends';
 
 const Layout = () => {
   return (
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/innovation-manager" element={<InnovationManagerPage />} />
           <Route path="/scoring" element={<ScoringPage />} />
+          <Route path="/trends" element={<Trends />} />
         </Route>
       </Route>
 

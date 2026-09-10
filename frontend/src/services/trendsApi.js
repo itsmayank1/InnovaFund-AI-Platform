@@ -1,4 +1,6 @@
-import { api } from "./api";
+import apiClient from "./api";
+
+const api = async (path) => (await apiClient.get(path)).data;
 
 export const PERIODS = ["W1", "W2", "W3", "W4", "W5", "W6"];
 
