@@ -11,6 +11,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql import func
 from database import Base
 
@@ -71,6 +72,15 @@ class User(Base):
     )
 
     password_hash = Column(String(255), nullable=False)
+    
+    # Alias so code using user.hashed_password also works (Mayank, Member 2)
+    @hybrid_property
+    def hashed_password(self):
+        return self.password_hash
+
+    @hashed_password.setter
+    def hashed_password(self, value):
+        self.password_hash = value
 
     role = Column(
         String(50),
