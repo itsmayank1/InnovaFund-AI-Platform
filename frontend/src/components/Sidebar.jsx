@@ -14,6 +14,7 @@ export default function Sidebar() {
   { to: '/patents', icon: <HiLightBulb />, label: 'Patent Landscape' },
   { to: '/recommendations', icon: <HiSparkles />, label: 'Funding Recommendations' },
   { to: '/innovation-manager', icon: <HiChartSquareBar />, label: 'Innovation Manager' },
+  { to: '/scoring', icon: <HiChartSquareBar />, label: 'Innovation Scoring' },
   { to: '/architecture', icon: <HiChip />, label: 'System Architecture' },
   { to: '/settings', icon: <HiCog />, label: 'Settings' },
 ];
