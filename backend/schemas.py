@@ -212,3 +212,48 @@ class RecommendationOut(BaseModel):
 class GenerateRecommendationsRequest(BaseModel):
     researcher_id: int
     top_n: Optional[int] = 10
+
+
+# ==========================================
+# Milestone 3: Technology Intelligence Schemas (Member 2 Deliverable)
+# ==========================================
+
+class EmergingTechTrendResponse(BaseModel):
+    id: int
+    name: str
+    category: str
+    patent_count: int
+    publication_count: int
+    growth_rate_pct: float
+    is_emerging: bool
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TechnologyMaturityResponse(BaseModel):
+    domain_id: int
+    domain_name: str
+    category: str
+    lifecycle_stage: str
+    trl_level: int
+    maturity_score: float
+    weighted_contribution: float = 0.0
+    adoption_velocity: str
+    commercial_readiness: str
+
+    class Config:
+        from_attributes = True
+
+
+class CompetitorActivityResponse(BaseModel):
+    id: int
+    domain_name: str
+    assignee_name: str
+    patent_holdings: int
+    market_share_pct: float
+    activity_status: str
+
+    class Config:
+        from_attributes = True
