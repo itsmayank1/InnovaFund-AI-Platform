@@ -16,6 +16,7 @@ from auth import hash_password
 from routers import auth_routes, profile_routes, dataset_routes, admin_routes, grant_matching_routes, patent_routes
 from routers import scoring_routes, commercialization_routes
 from routers import technology_routes
+from routers import trends_routes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ app.include_router(commercialization_routes.router, prefix=settings.API_PREFIX)
 # added by member 1
 app.include_router(patent_routes.router, prefix=settings.API_PREFIX)
 app.include_router(technology_routes.router, prefix=settings.API_PREFIX)
+app.include_router(trends_routes.router, prefix=settings.API_PREFIX)
 
 
 @app.on_event("startup")
