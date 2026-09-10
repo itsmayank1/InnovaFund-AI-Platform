@@ -257,3 +257,38 @@ class CompetitorActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ==========================================
+# Milestone 3: Commercialization Schemas
+# ==========================================
+
+class LicensingOpportunity(BaseModel):
+    title: str
+    potential_licensee: str
+    estimated_royalty_range: str
+    readiness_level: str
+
+
+class StartupRecommendation(BaseModel):
+    title: str
+    incubation_stage: str
+    target_funding_round: str
+    key_requirements: List[str]
+
+
+class IndustryPartnership(BaseModel):
+    partner_name: str
+    sector: str
+    collaboration_type: str
+    value_proposition: str
+
+
+class CommercializationResponse(BaseModel):
+    project_id: int
+    project_title: str
+    overall_readiness_score: float
+    productization_recommendations: List[str]
+    licensing_opportunities: List[LicensingOpportunity]
+    startup_creation_recommendations: List[StartupRecommendation]
+    industry_partnership_recommendations: List[IndustryPartnership]
