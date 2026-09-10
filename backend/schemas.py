@@ -185,73 +185,30 @@ class MatchingRulesConfig(BaseModel):
     strict_geography_check: bool = Field(True, description="Strictly exclude grants if geography is restricted and mismatched")
     strict_deadline_check: bool = Field(True, description="Strictly mark grants past deadline as EXPIRED/INELIGIBLE")
 
-# ==========================================
-# Milestone 3: Innovation Scoring Schemas
-# ==========================================
-
-class ScoringRequest(BaseModel):
-    project_id: Optional[int] = None
-    project_title: Optional[str] = None
-    research_novelty: float = Field(..., ge=0, le=100)
-    patent_strength: float = Field(..., ge=0, le=100)
-    technology_maturity: float = Field(..., ge=0, le=100)
-    market_potential: float = Field(..., ge=0, le=100)
-    funding_relevance: float = Field(..., ge=0, le=100)
 
 
-class ScoringBreakdown(BaseModel):
-    research_novelty_score: float
-    research_novelty_weighted: float
-    patent_strength_score: float
-    patent_strength_weighted: float
-    technology_maturity_score: float
-    technology_maturity_weighted: float
-    market_potential_score: float
-    market_potential_weighted: float
-    funding_relevance_score: float
-    funding_relevance_weighted: float
+
+# --- ADDED BY MEMBER 1 (Milestone 2) ---
 
 
-class ScoringResponse(BaseModel):
-    project_id: int
-    project_title: str
-    overall_score: float
-    tier: str
-    breakdown: ScoringBreakdown
-    summary: str
-    calculated_at: datetime
-
-
-# ==========================================
-# Milestone 3: Commercialization Schemas
-# ==========================================
-
-class LicensingOpportunity(BaseModel):
+class RecommendationOut(BaseModel):
+    opportunity_id: int
     title: str
-    potential_licensee: str
-    estimated_royalty_range: str
-    readiness_level: str
+    agency: Optional[str]
+    amount: Optional[float]
+    deadline: Optional[datetime]
+    url: Optional[str]
+    score: float
+    domain_fit_score: float
+    deadline_score: float
+    amount_score: float
+    success_rate_score: float
+    eligible: bool
+    reasoning: str
 
+    class Config:
+        from_attributes = True
 
-class StartupRecommendation(BaseModel):
-    title: str
-    incubation_stage: str
-    target_funding_round: str
-    key_requirements: List[str]
-
-
-class IndustryPartnership(BaseModel):
-    partner_name: str
-    sector: str
-    collaboration_type: str
-    value_proposition: str
-
-
-class CommercializationResponse(BaseModel):
-    project_id: int
-    project_title: str
-    overall_readiness_score: float
-    productization_recommendations: List[str]
-    licensing_opportunities: List[LicensingOpportunity]
-    startup_creation_recommendations: List[StartupRecommendation]
-    industry_partnership_recommendations: List[IndustryPartnership]
+class GenerateRecommendationsRequest(BaseModel):
+    researcher_id: int
+    top_n: Optional[int] = 10
