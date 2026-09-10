@@ -3,11 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { HiBookOpen, HiLightBulb, HiCurrencyDollar, HiChartBar, HiUsers, HiUserCircle, HiSparkles, HiArrowRight, HiShieldCheck, HiTrendingUp } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import GrantMatchingModal from '../components/GrantMatchingModal';
+import TechnologyIntelligenceModal from '../components/TechnologyIntelligenceModal';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [isTechModalOpen, setIsTechModalOpen] = useState(false);
 
   
   const currentUser = user || (() => {
@@ -196,6 +198,9 @@ export default function DashboardPage() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <button onClick={() => setIsTechModalOpen(true)} className="btn-outline" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', border: '1px solid rgba(192, 132, 252, 0.4)', color: '#c084fc' }}>
+                <HiTrendingUp /> Launch Tech Intelligence
+              </button>
               <button onClick={() => setIsMatchModalOpen(true)} className="btn-outline" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', border: '1px solid rgba(14, 165, 233, 0.4)', color: '#38bdf8' }}>
                 <HiSparkles /> Test Rules Engine
               </button>
@@ -274,6 +279,7 @@ export default function DashboardPage() {
 
       {/* Interactive Member 2 Grant Matching Engine Modal */}
       <GrantMatchingModal isOpen={isMatchModalOpen} onClose={() => setIsMatchModalOpen(false)} />
+      <TechnologyIntelligenceModal isOpen={isTechModalOpen} onClose={() => setIsTechModalOpen(false)} />
     </div>
   );
 }
