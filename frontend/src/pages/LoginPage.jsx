@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import InnovaLogo from '../components/InnovaLogo';
 import GoogleOfficialAuthButton from '../components/GoogleOfficialAuthButton';
 import GithubOfficialAuthButton from '../components/GithubOfficialAuthButton';
-import { HiSparkles, HiLightningBolt, HiCheckCircle, HiPlay, HiExclamationCircle } from 'react-icons/hi';
+import { HiSparkles, HiShieldCheck, HiLightningBolt, HiCheckCircle } from 'react-icons/hi';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -28,23 +28,6 @@ export default function LoginPage() {
       navigate('/dashboard');
     } catch (err) {
       setError(err?.response?.data?.detail || 'Invalid email credentials or password.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await googleLogin({
-        email: 'demo.researcher@innovafund.ai',
-        full_name: 'Demo Researcher',
-        role: 'researcher'
-      });
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Quick Demo Sign-In failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -132,7 +115,7 @@ export default function LoginPage() {
 
         {/* Right Side: Sign-In Form Panel */}
         <div className="glass-card" style={{ padding: '3.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ marginBottom: '1.75rem' }}>
+          <div style={{ marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '2rem', fontWeight: '800', margin: '0 0 0.4rem 0', color: '#f8fafc' }}>
               Welcome Back
             </h3>
@@ -142,51 +125,24 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', padding: '0.9rem', borderRadius: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem', lineHeight: '1.5', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-              <HiExclamationCircle style={{ fontSize: '1.3rem', flexShrink: 0, marginTop: '0.1rem', color: '#f87171' }} />
-              <div>{error}</div>
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', padding: '0.85rem', borderRadius: '0.75rem', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+              {error}
             </div>
           )}
 
           {/* Social OAuth Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.25rem' }}>
-            <GoogleOfficialAuthButton text="Sign in with Google" onError={(msg) => setError(msg)} />
-            <GithubOfficialAuthButton text="Sign in with GitHub" onError={(msg) => setError(msg)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            <GoogleOfficialAuthButton text="Sign in with Google" />
+            <GithubOfficialAuthButton text="Sign in with GitHub" />
           </div>
 
-          {/* Quick Demo Sign-In Action */}
-          <button
-            type="button"
-            onClick={handleQuickDemoLogin}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '0.8rem',
-              borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
-              fontWeight: '700',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.2s ease',
-              marginBottom: '1.25rem'
-            }}
-          >
-            <HiPlay style={{ fontSize: '1.1rem' }} /> Quick Demo Sign-In (Skip OAuth Setup)
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', margin: '1rem 0', color: '#64748b', fontSize: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', margin: '1.5rem 0', color: '#64748b', fontSize: '0.75rem' }}>
             <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }}></div>
             <span>OR EMAIL SIGN IN</span>
             <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }}></div>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '0.4rem' }}>Email Address</label>
               <input
@@ -222,7 +178,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.75rem', fontSize: '0.9rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.9rem', color: '#94a3b8' }}>
             Don't have an account?{' '}
             <Link to="/register" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: '700' }}>
               Register here
