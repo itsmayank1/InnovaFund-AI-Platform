@@ -9,7 +9,15 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
+    @property
+    def database_url(self) -> str:
+        return self.DATABASE_URL
+
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
+
+def get_settings():
+    return settings

@@ -1084,3 +1084,8 @@ class CompetitorActivity(Base):
         "TechnologyDomain",
         back_populates="competitors"
     )
+
+UserProfile = ResearchProfile
+ResearchDomain = ResearchInterest
+TechnologyArea = TechnologyDomain
+ResearchHistory = Keyword
