@@ -1,39 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGithubFirebase } from '../firebase';
 import { FaGithub } from 'react-icons/fa';
 
-export default function GithubOfficialAuthButton({ text = "Sign in with GitHub" }) {
+export default function GithubOfficialAuthButton({ text = "Sign in with GitHub", onError }) {
   const { googleLogin } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleGithubClick = async () => {
+    setLoading(true);
     try {
       const githubUser = await loginWithGithubFirebase();
-      const userEmail = githubUser.email || 'user@innovafund.ai';
-      const userName = githubUser.full_name || (userEmail ? userEmail.split('@')[0] : 'GitHub User');
-      await googleLogin({
-        email: userEmail,
-        full_name: userName,
-        role: 'researcher'
-      });
-      navigate('/dashboard');
+      if (githubUser && githubUser.success) {
+        await googleLogin({
+          email: githubUser.email,
+          full_name: githubUser.full_name,
+          role: 'researcher'
+        });
+        navigate('/dashboard');
+      } else {
+        const errMsg = githubUser?.error || 'GitHub OAuth failed (Unconfigured OAuth App Client ID/Secret).';
+        if (onError) {
+          onError(`GitHub Auth Error: ${errMsg} Click 'Quick Demo Sign-In' below to test the portal without OAuth.`);
+        }
+      }
     } catch (err) {
-      await googleLogin({
-        email: 'user@innovafund.ai',
-        full_name: 'GitHub User',
-        role: 'researcher'
-      });
-      navigate('/dashboard');
+      console.error('GitHub login catch error:', err);
+      if (onError) {
+        onError(`GitHub Sign-In failed: ${err.message || 'Error from GitHub Provider'}. Use Quick Demo Sign-In below.`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
-
 
   return (
     <button
       type="button"
       onClick={handleGithubClick}
+      disabled={loading}
       className="btn-outline"
       style={{
         width: '100%',
@@ -45,11 +52,11 @@ export default function GithubOfficialAuthButton({ text = "Sign in with GitHub" 
         background: 'rgba(255, 255, 255, 0.04)',
         fontWeight: '600',
         fontSize: '0.9rem',
-        cursor: 'pointer'
+        cursor: loading ? 'not-allowed' : 'pointer'
       }}
     >
       <FaGithub style={{ fontSize: '1.2rem' }} />
-      {text}
+      {loading ? 'Authenticating GitHub...' : text}
     </button>
   );
 }

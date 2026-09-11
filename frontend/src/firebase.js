@@ -20,33 +20,31 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 export const githubProvider = new GithubAuthProvider();
 githubProvider.setCustomParameters({ prompt: 'consent' });
 
-
 export const loginWithGoogleFirebase = async () => {
   try {
-    const popupPromise = signInWithPopup(auth, googleProvider).then(result => ({
-      email: result.user.email,
-      full_name: result.user.displayName || (result.user.email ? result.user.email.split('@')[0] : 'Google User'),
-      photoURL: result.user.photoURL,
-      uid: result.user.uid
-    }));
-
-    const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          email: 'google.user@innovafund.ai',
-          full_name: 'Google User',
-          uid: 'google_user_123'
-        });
-      }, 2000);
-    });
-
-    return await Promise.race([popupPromise, timeoutPromise]);
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    return {
+      success: true,
+      email: user.email,
+      full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'Google User'),
+      photoURL: user.photoURL,
+      uid: user.uid
+    };
   } catch (error) {
     console.error('Firebase Google Auth error:', error);
+    let userFriendlyErr = 'Google OAuth failed (Error 500: Unconfigured Google Consent Screen / Firebase OAuth Client ID).';
+    if (error.code === 'auth/operation-not-allowed') {
+      userFriendlyErr = 'Google Provider is not enabled in Firebase Console (Authentication -> Sign-in method -> Google).';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      userFriendlyErr = 'localhost is not added to Authorized Domains in Firebase Console Settings.';
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      userFriendlyErr = 'Google Sign-In popup was closed before completing authentication.';
+    }
     return {
-      email: 'google.user@innovafund.ai',
-      full_name: 'Google User',
-      uid: 'google_user_123'
+      success: false,
+      error: userFriendlyErr,
+      code: error.code
     };
   }
 };
@@ -56,18 +54,24 @@ export const loginWithGithubFirebase = async () => {
     const result = await signInWithPopup(auth, githubProvider);
     const user = result.user;
     return {
+      success: true,
       email: user.email || 'user@innovafund.ai',
       full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'GitHub User'),
       photoURL: user.photoURL,
       uid: user.uid
     };
   } catch (error) {
-    console.error('Firebase GitHub Auth error code:', error.code, error.message);
+    console.error('Firebase GitHub Auth error:', error);
+    let userFriendlyErr = 'GitHub OAuth failed (Unconfigured GitHub Client ID/Secret in Firebase Console).';
+    if (error.code === 'auth/operation-not-allowed') {
+      userFriendlyErr = 'GitHub Provider is not enabled in Firebase Console.';
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      userFriendlyErr = 'GitHub Sign-In popup was closed before completing authentication.';
+    }
     return {
-      email: 'user@innovafund.ai',
-      full_name: 'GitHub User',
-      uid: 'github_user_123'
+      success: false,
+      error: userFriendlyErr,
+      code: error.code
     };
   }
 };
-
