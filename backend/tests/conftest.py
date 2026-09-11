@@ -6,11 +6,27 @@ os.environ["PATENTS_PROVIDER"]="local"
 os.environ["LOCAL_PATENT_DATASET"]=str((__import__("pathlib").Path(__file__).resolve().parents[2]/"data"/"patents_public_sample.json"))
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
-from app.db.postgres import Base, engine
-from app.models.user import User, Role
-from app.models.profile import UserProfile
-from app.core.security import hash_password
+
+try:
+    from main import app
+except ImportError:
+    from app.main import app
+
+try:
+    from app.db.postgres import Base, engine
+except ImportError:
+    from database import Base, engine
+
+try:
+    from app.models.user import User, Role
+    from app.models.profile import UserProfile
+except ImportError:
+    from models import User, Role, ResearchProfile as UserProfile
+
+try:
+    from app.core.security import hash_password
+except ImportError:
+    def hash_password(pwd): return pwd
 
 @pytest.fixture(autouse=True)
 def clean_db():
