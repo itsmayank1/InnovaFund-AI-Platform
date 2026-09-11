@@ -1,14 +1,15 @@
-venv/
-.venv/
-__pycache__/
+# Python
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
 *.pyc
-*.db
-#.vscode/
-node_modules/
-.env
-dist/
-build/
-*.log
-Member2_Grant_Matching_Workflows_Team_Lead_Report.*
-*Team_Lead_Report*
+backend/.env
 
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# General
+.DS_Store
+*.log

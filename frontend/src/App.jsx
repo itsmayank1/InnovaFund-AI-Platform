@@ -12,11 +12,14 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicationsPage from './pages/PublicationsPage';
 import PatentsPage from './pages/PatentsPage';
-import RecommendationsPage from './pages/RecommendationsPage';
 import ArchitecturePage from './pages/ArchitecturePage';
 import AdminPage from './pages/AdminPage';
 import SettingsPage from './pages/SettingsPage';
 import './App.css';
+import RecommendationsPage from './pages/RecommendationsPage';
+import InnovationManagerPage from './pages/InnovationManagerPage';
+import ScoringPage from './pages/ScoringPage';
+import Trends from './pages/Trends';
 
 const Layout = () => {
   return (
@@ -39,22 +42,25 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      
+
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/executive" element={<AnalyticsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/recommendations" element={<RecommendationsPage />} />
           <Route path="/publications" element={<PublicationsPage />} />
           <Route path="/patents" element={<PatentsPage />} />
           <Route path="/architecture" element={<ArchitecturePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/recommendations" element={<RecommendationsPage />} />
+          <Route path="/innovation-manager" element={<InnovationManagerPage />} />
+          <Route path="/scoring" element={<ScoringPage />} />
+          <Route path="/trends" element={<Trends />} />
         </Route>
       </Route>
-      
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

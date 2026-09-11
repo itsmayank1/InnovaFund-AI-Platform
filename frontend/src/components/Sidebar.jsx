@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HiChartSquareBar, HiUserCircle, HiBookOpen, HiLightBulb, HiShieldCheck, HiCog, HiChip, HiSparkles, HiChartBar } from 'react-icons/hi';
+import { HiChartSquareBar, HiUserCircle, HiBookOpen, HiLightBulb, HiShieldCheck, HiCog, HiChip, HiSparkles, HiChartBar, HiTrendingUp } from 'react-icons/hi';
 import InnovaLogo from './InnovaLogo';
 
 export default function Sidebar() {
@@ -11,9 +11,12 @@ export default function Sidebar() {
     { to: '/dashboard', icon: <HiChartSquareBar />, label: 'Dashboard' },
     { to: '/analytics', icon: <HiChartBar />, label: 'Executive Analytics' },
     { to: '/profile', icon: <HiUserCircle />, label: 'Research Profile' },
-    { to: '/recommendations', icon: <HiSparkles />, label: 'Grant Recommendations' },
     { to: '/publications', icon: <HiBookOpen />, label: 'Publications' },
     { to: '/patents', icon: <HiLightBulb />, label: 'Patent Landscape' },
+    { to: '/recommendations', icon: <HiSparkles />, label: 'Grant Recommendations' },
+    { to: '/innovation-manager', icon: <HiChartSquareBar />, label: 'Innovation Manager' },
+    { to: '/scoring', icon: <HiChartSquareBar />, label: 'Innovation Scoring' },
+    { to: '/trends', icon: <HiTrendingUp />, label: 'Research Trends' },
     { to: '/architecture', icon: <HiChip />, label: 'System Architecture' },
     { to: '/settings', icon: <HiCog />, label: 'Settings' },
   ];

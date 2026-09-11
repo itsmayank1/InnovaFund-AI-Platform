@@ -12,8 +12,9 @@ router = APIRouter(prefix="/datasets", tags=["Publication & Patent Dataset Integ
 @router.get("/publications/search", response_model=List[PublicationResponse])
 def search_publications(
     query: str = Query("artificial intelligence", min_length=2),
-    source: str = Query("all", pattern="^(all|openalex|crossref|semantic_scholar|arxiv)$"),
-    limit: int = Query(25, ge=1, le=100),
+    source: str = Query("all", pattern="^(all|openalex|crossref|semantic_scholar)$"),
+    limit: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     service = DatasetService(db)
@@ -23,24 +24,17 @@ def search_publications(
         return service.search_crossref(query, limit)
     elif source == "semantic_scholar":
         return service.search_semantic_scholar(query, limit)
-    elif source == "arxiv":
-        return service.search_arxiv(query, limit)
     else:
-        # Aggregated search across all scientific repositories for maximum yield
-        each_limit = max(10, limit // 2)
-        results = (
-            service.search_arxiv(query, limit=each_limit) +
-            service.search_openalex(query, limit=each_limit) +
-            service.search_crossref(query, limit=each_limit) +
-            service.search_semantic_scholar(query, limit=each_limit)
-        )
-        return results[:limit]
+        # Aggregated search
+        res = service.search_openalex(query, limit=5) + service.search_crossref(query, limit=5)
+        return res
 
 @router.get("/patents/search", response_model=List[PatentResponse])
 def search_patents(
     query: str = Query("quantum computing", min_length=2),
     source: str = Query("all", pattern="^(all|uspto|google_patents|the_lens)$"),
-    limit: int = Query(25, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     service = DatasetService(db)
@@ -51,10 +45,4 @@ def search_patents(
     elif source == "the_lens":
         return service.search_the_lens(query, limit)
     else:
-        each_limit = max(10, limit // 2)
-        results = (
-            service.search_google_patents(query, limit=each_limit) +
-            service.search_uspto(query, limit=each_limit) +
-            service.search_the_lens(query, limit=each_limit)
-        )
-        return results[:limit]
+        return service.search_google_patents(query, limit=5) + service.search_uspto(query, limit=5)

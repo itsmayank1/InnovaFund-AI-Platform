@@ -186,6 +186,34 @@ class MatchingRulesConfig(BaseModel):
     strict_deadline_check: bool = Field(True, description="Strictly mark grants past deadline as EXPIRED/INELIGIBLE")
 
 
+
+
+# --- ADDED BY MEMBER 1 (Milestone 2) ---
+
+
+class RecommendationOut(BaseModel):
+    opportunity_id: int
+    title: str
+    agency: Optional[str]
+    amount: Optional[float]
+    deadline: Optional[datetime]
+    url: Optional[str]
+    score: float
+    domain_fit_score: float
+    deadline_score: float
+    amount_score: float
+    success_rate_score: float
+    eligible: bool
+    reasoning: str
+
+    class Config:
+        from_attributes = True
+
+class GenerateRecommendationsRequest(BaseModel):
+    researcher_id: int
+    top_n: Optional[int] = 10
+
+
 # ==========================================
 # Milestone 3: Technology Intelligence Schemas (Member 2 Deliverable)
 # ==========================================
@@ -208,16 +236,15 @@ class TechnologyMaturityResponse(BaseModel):
     domain_id: int
     domain_name: str
     category: str
-    lifecycle_stage: str # Emerging, Growth, Mature, Declining
-    trl_level: int # Technology Readiness Level 1-9
-    maturity_score: float # 0.0 to 100.0 (Supplies 15% weight to Member 4's scoring model)
-    weighted_contribution: float = 0.0 # 15% Innovation Score multiplier (0.0 to 15.0 pts)
-    adoption_velocity: str # Low, Moderate, High, Rapid
+    lifecycle_stage: str
+    trl_level: int
+    maturity_score: float
+    weighted_contribution: float = 0.0
+    adoption_velocity: str
     commercial_readiness: str
 
     class Config:
         from_attributes = True
-
 
 
 class CompetitorActivityResponse(BaseModel):
@@ -230,4 +257,38 @@ class CompetitorActivityResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
+
+
+# ==========================================
+# Milestone 3: Commercialization Schemas
+# ==========================================
+
+class LicensingOpportunity(BaseModel):
+    title: str
+    potential_licensee: str
+    estimated_royalty_range: str
+    readiness_level: str
+
+
+class StartupRecommendation(BaseModel):
+    title: str
+    incubation_stage: str
+    target_funding_round: str
+    key_requirements: List[str]
+
+
+class IndustryPartnership(BaseModel):
+    partner_name: str
+    sector: str
+    collaboration_type: str
+    value_proposition: str
+
+
+class CommercializationResponse(BaseModel):
+    project_id: int
+    project_title: str
+    overall_readiness_score: float
+    productization_recommendations: List[str]
+    licensing_opportunities: List[LicensingOpportunity]
+    startup_creation_recommendations: List[StartupRecommendation]
+    industry_partnership_recommendations: List[IndustryPartnership]

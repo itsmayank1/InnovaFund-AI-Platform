@@ -174,7 +174,6 @@ def update_matching_rules(new_config: MatchingRulesConfig):
 
 
 @router.get("/opportunities", response_model=List[FundingOpportunityResponse], summary="List All Funding Opportunities (Member 3 Interface)")
-@router.get("/funding/opportunities", response_model=List[FundingOpportunityResponse], summary="List All Funding Opportunities Alias")
 def list_funding_opportunities(
     db: Session = Depends(get_db)
 ):
@@ -188,15 +187,4 @@ def list_funding_opportunities(
         else FundingOpportunityResponse.from_orm(o)
         for o in opportunities
     ]
-
-
-@router.get("/funding/recommendations", response_model=GrantMatchResponse, summary="Get Funding Recommendations Alias (Member 7 Interface)")
-def get_funding_recommendations(
-    db: Session = Depends(get_db)
-):
-    """
-    Returns personalized funding recommendations for Member 7 UI.
-    """
-    return get_eligible_grants_for_researcher(1, db)
-
 

@@ -264,18 +264,13 @@ def seed_funding_opportunities_if_empty(db: Session):
     specified in Milestone 2 (Member 3 Data Hand-off Bridge).
     """
     try:
-        bind_engine = db.get_bind()
-        Base.metadata.create_all(bind=bind_engine)
-        
-        # Run auto-healing schema check for missing columns on old dev database files
-        from database import auto_migrate_schema
-        auto_migrate_schema(bind_engine)
-
+        Base.metadata.create_all(bind=db.get_bind())
         count = db.query(FundingOpportunity).count()
-        if count >= 15:
+        if count > 0:
             return
 
-        logger.info("Seeding 20+ Milestone 2 & 3 Funding Opportunities across Global Agencies...")
+
+        logger.info("Seeding Milestone 2 Funding Opportunities from 6 Sources...")
 
         sources_data = [
             {"name": "National Science Foundation (NSF)", "source_type": "Government Grants", "country": "US", "website": "https://nsf.gov"},
@@ -284,12 +279,6 @@ def seed_funding_opportunities_if_empty(db: Session):
             {"name": "Y Combinator BioTech", "source_type": "Startup Accelerators", "country": "US", "website": "https://ycombinator.com"},
             {"name": "Breakthrough Energy Ventures", "source_type": "Venture Programs", "country": "Global", "website": "https://breakthroughenergy.org"},
             {"name": "Bill & Melinda Gates Foundation", "source_type": "Int'l Funding Agencies", "country": "Global", "website": "https://gatesfoundation.org"},
-            {"name": "National Institutes of Health (NIH)", "source_type": "Government Grants", "country": "US", "website": "https://nih.gov"},
-            {"name": "DARPA Defense Sciences", "source_type": "Government R&D", "country": "US", "website": "https://darpa.mil"},
-            {"name": "Google Research Grants", "source_type": "Enterprise Innovation", "country": "Global", "website": "https://research.google"},
-            {"name": "ARPA-E Energy Innovation", "source_type": "Government Grants", "country": "US", "website": "https://arpa-e.energy.gov"},
-            {"name": "UK Research and Innovation (UKRI)", "source_type": "Research Councils", "country": "UK", "website": "https://ukri.org"},
-            {"name": "DST India Science & Tech Fund", "source_type": "Government Grants", "country": "India", "website": "https://dst.gov.in"},
         ]
 
         source_map = {}
@@ -391,113 +380,15 @@ def seed_funding_opportunities_if_empty(db: Session):
                 "eligible_geography": "Global",
                 "funding_type": "Fellowship",
                 "external_link": "https://breakthroughenergy.org/fellows"
-            },
-            {
-                "source_id": source_map["National Institutes of Health (NIH)"],
-                "title": "NIH R01 Research Project Grant: Genomics & Precision Therapeutics",
-                "agency": "National Institutes of Health",
-                "description": "Funding for health-related research into gene editing, mRNA delivery, and precision oncology.",
-                "grant_amount": 2000000,
-                "currency": "USD",
-                "deadline": date(2026, 11, 10),
-                "status": "Open",
-                "research_domain": "Biotechnology",
-                "career_stage": "Senior/Lead",
-                "eligible_geography": "US",
-                "funding_type": "Grant",
-                "external_link": "https://grants.nih.gov/grants/funding/r01.htm"
-            },
-            {
-                "source_id": source_map["DARPA Defense Sciences"],
-                "title": "DARPA Young Faculty Award: Autonomous Robotics & Swarm Intelligence",
-                "agency": "DARPA",
-                "description": "Grant designed to identify rising research stars developing next-gen autonomous drone swarms.",
-                "grant_amount": 1200000,
-                "currency": "USD",
-                "deadline": date(2026, 10, 15),
-                "status": "Open",
-                "research_domain": "Artificial Intelligence",
-                "career_stage": "Early-Career",
-                "eligible_geography": "US",
-                "funding_type": "Grant",
-                "external_link": "https://darpa.mil/work-with-us/yfa"
-            },
-            {
-                "source_id": source_map["Google Research Grants"],
-                "title": "Google Focused Research Award: Foundation AI & LLM Reasoning",
-                "agency": "Google Research",
-                "description": "Unrestricted grant awards supporting academic faculty advancing large language model efficiency.",
-                "grant_amount": 350000,
-                "currency": "USD",
-                "deadline": date(2026, 9, 15),
-                "status": "Open",
-                "research_domain": "Artificial Intelligence",
-                "career_stage": "Mid-Career",
-                "eligible_geography": "Global",
-                "funding_type": "Grant",
-                "external_link": "https://research.google/outreach/faculty-research-awards/"
-            },
-            {
-                "source_id": source_map["ARPA-E Energy Innovation"],
-                "title": "ARPA-E OPEN 2026: Disruptive Solid-State Fusion & Grid Technologies",
-                "agency": "ARPA-E",
-                "description": "High-risk, high-reward funding for transformative energy technologies and fusion energy prototypes.",
-                "grant_amount": 3000000,
-                "currency": "USD",
-                "deadline": date(2026, 12, 1),
-                "status": "Open",
-
-                "research_domain": "Climate & CleanEnergy",
-                "career_stage": "Startup/SME",
-                "eligible_geography": "US",
-                "funding_type": "R&D Subsidy",
-                "external_link": "https://arpa-e.energy.gov/open"
-            },
-            {
-                "source_id": source_map["UK Research and Innovation (UKRI)"],
-                "title": "UKRI Future Leaders Fellowship: Quantum Communication & Photonics",
-                "agency": "UKRI",
-                "description": "Long-term fellowship supporting ambitious early-career researchers establishing quantum labs in the UK.",
-                "grant_amount": 1800000,
-                "currency": "USD",
-                "deadline": date(2026, 11, 25),
-                "status": "Open",
-                "research_domain": "Quantum Computing",
-                "career_stage": "Early-Career",
-                "eligible_geography": "UK",
-                "funding_type": "Fellowship",
-                "external_link": "https://ukri.org/opportunity/future-leaders-fellowships/"
-            },
-            {
-                "source_id": source_map["DST India Science & Tech Fund"],
-                "title": "DST-SERB Core Research Grant: DeepTech & Cyber-Physical Systems",
-                "agency": "Department of Science and Technology (India)",
-                "description": "Research grant promoting frontier scientific breakthroughs in AI, IoT, and smart manufacturing.",
-                "grant_amount": 600000,
-                "currency": "USD",
-                "deadline": date(2026, 10, 5),
-                "status": "Open",
-
-                "research_domain": "Artificial Intelligence",
-                "career_stage": "Mid-Career",
-                "eligible_geography": "India",
-                "funding_type": "Grant",
-                "external_link": "https://serbonline.in/"
             }
         ]
 
         for g in sample_grants:
-            try:
-                db_opp = FundingOpportunity(**g)
-                db.add(db_opp)
-            except Exception:
-                g_copy = {k: v for k, v in g.items() if k != "source_id"}
-                db_opp = FundingOpportunity(**g_copy)
-                db.add(db_opp)
+            db_opp = FundingOpportunity(**g)
+            db.add(db_opp)
 
         db.commit()
-        logger.info(f"Successfully seeded {len(sample_grants)} funding opportunities.")
+        logger.info(f"Successfully seeded {len(sample_grants)} Milestone 2 funding opportunities.")
     except Exception as e:
         logger.error(f"Error seeding funding opportunities: {e}")
         db.rollback()
-

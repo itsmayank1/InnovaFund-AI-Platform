@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { searchPublications } from '../api/research';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { HiSearch, HiExternalLink, HiBookOpen, HiSparkles, HiDownload, HiDocumentReport } from 'react-icons/hi';
@@ -6,14 +6,10 @@ import { HiSearch, HiExternalLink, HiBookOpen, HiSparkles, HiDownload, HiDocumen
 export default function PublicationsPage() {
   const [query, setQuery] = useState('artificial intelligence');
   const [source, setSource] = useState('all');
-  const [limit, setLimit] = useState(25);
+  const [limit, setLimit] = useState(10);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-
-  useEffect(() => {
-    handleSearch();
-  }, []);
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
@@ -100,7 +96,6 @@ export default function PublicationsPage() {
             <option value="openalex" style={{ background: '#030712' }}>OpenAlex</option>
             <option value="crossref" style={{ background: '#030712' }}>CrossRef</option>
             <option value="semantic_scholar" style={{ background: '#030712' }}>Semantic Scholar</option>
-            <option value="arxiv" style={{ background: '#030712' }}>arXiv Open API</option>
           </select>
 
           <select
@@ -108,10 +103,9 @@ export default function PublicationsPage() {
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
           >
+            <option value={5} style={{ background: '#030712' }}>5 Results</option>
             <option value={10} style={{ background: '#030712' }}>10 Results</option>
             <option value={25} style={{ background: '#030712' }}>25 Results</option>
-            <option value={50} style={{ background: '#030712' }}>50 Results</option>
-            <option value={100} style={{ background: '#030712' }}>100 Results (Max)</option>
           </select>
 
           <button type="submit" className="btn-gradient" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>

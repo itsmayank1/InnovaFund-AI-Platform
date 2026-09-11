@@ -1,96 +1,142 @@
-import React, { useState, useEffect } from 'react';
-import client from '../api/client';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getRecommendations, generateRecommendations } from '../api/recommendations';
+import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { HiSparkles, HiSearch, HiSortAscending, HiBookmark, HiOutlineBookmark, HiCurrencyDollar, HiCalendar, HiExclamationCircle } from 'react-icons/hi';
+import GrantDetailsModal from '../components/GrantDetailsModal';
+import {
+  HiSparkles, HiCurrencyDollar, HiCalendar, HiExclamationCircle,
+  HiSearch, HiSortAscending, HiBookmark, HiOutlineBookmark, HiExternalLink,
+} from 'react-icons/hi';
+
+const BOOKMARK_KEY = 'innovafund_bookmarked_grants';
 
 export default function RecommendationsPage() {
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [needsGeneration, setNeedsGeneration] = useState(false);
   const [eligibleOnly, setEligibleOnly] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('score_desc');
-  const [bookmarked, setBookmarked] = useState([]);
+  const [selectedGrant, setSelectedGrant] = useState(null);
+  const [bookmarked, setBookmarked] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(BOOKMARK_KEY) || '[]'); } catch { return []; }
+  });
+
+  const researcherId = user?.id;
 
   useEffect(() => {
-    fetchRecommendations();
-  }, []);
+    if (researcherId) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [researcherId]);
 
-  const fetchRecommendations = async () => {
+  const loadData = async () => {
     setLoading(true);
     setError(null);
+    setNeedsGeneration(false);
     try {
-      const res = await client.get('/funding/recommendations');
-      const data = res.data;
-      if (data && data.matched_grants) {
-        const formatted = data.matched_grants.map(item => ({
-          opportunity_id: item.opportunity_id,
-          title: item.title,
-          agency: item.funding_agency || item.agency,
-          amount: item.grant_amount || item.amount,
-          deadline: item.deadline,
-          score: item.overall_eligibility_score || item.score || 85,
-          eligible: item.eligibility_status === 'ELIGIBLE' || item.eligible,
-          reasoning: item.match_explanation || item.reasoning || 'Strong domain fit and eligibility match.'
-        }));
-        setRecommendations(formatted);
-      } else if (Array.isArray(data)) {
-        setRecommendations(data);
-      } else {
-        setRecommendations([]);
-      }
+      const data = await getRecommendations(researcherId);
+      setRecommendations(data || []);
     } catch (err) {
-      console.error(err);
-      setRecommendations([
-        { opportunity_id: 1, title: 'NSF AI & Quantum Innovation Grant', agency: 'National Science Foundation', amount: 500000, deadline: '2026-11-15', score: 94.5, eligible: true, reasoning: 'Strong research domain alignment and career stage match.' },
-        { opportunity_id: 2, title: 'NIH Biomedical Machine Learning Fellowship', agency: 'National Institutes of Health', amount: 350000, deadline: '2026-10-01', score: 88.0, eligible: true, reasoning: 'Highly compatible technology areas and funding mechanism.' },
-        { opportunity_id: 3, title: 'Horizon Europe Clean Tech Accelerator', agency: 'European Research Council', amount: 750000, deadline: '2026-12-31', score: 76.2, eligible: false, reasoning: 'Partial match on geographical scope.' }
-      ]);
+      if (err.response?.status === 404) {
+        setNeedsGeneration(true);
+      } else {
+        console.error(err);
+        setError('Unable to load funding recommendations right now. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleBookmark = (id) => {
-    setBookmarked(prev => prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]);
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const data = await generateRecommendations(researcherId, 10);
+      setRecommendations(data || []);
+      setNeedsGeneration(false);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) {
+        setError('No research profile found — please complete your Research Profile first.');
+      } else {
+        setError('Could not generate recommendations right now. Please try again.');
+      }
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const filtered = recommendations.filter(r => {
-    const matchesSearch = (r.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (r.agency || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesEligible = eligibleOnly ? r.eligible : true;
-    return matchesSearch && matchesEligible;
-  });
+  const toggleBookmark = (id) => {
+    setBookmarked((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === 'score_desc') return (b.score || 0) - (a.score || 0);
-    if (sortBy === 'score_asc') return (a.score || 0) - (b.score || 0);
-    if (sortBy === 'amount_desc') return (b.amount || 0) - (a.amount || 0);
-    return 0;
-  });
+  const processed = useMemo(() => {
+    let list = eligibleOnly ? recommendations.filter((r) => r.eligible) : recommendations;
 
-  const eligibleCount = recommendations.filter(r => r.eligible).length;
-  const totalValue = recommendations.reduce((acc, r) => acc + (r.amount || 0), 0);
-  const avgScore = recommendations.length > 0
-    ? (recommendations.reduce((acc, r) => acc + (r.score || 0), 0) / recommendations.length).toFixed(1)
-    : 0;
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      list = list.filter(
+        (r) => r.title?.toLowerCase().includes(q) || r.agency?.toLowerCase().includes(q)
+      );
+    }
+
+    const sorted = [...list];
+    switch (sortBy) {
+      case 'score_desc': sorted.sort((a, b) => b.score - a.score); break;
+      case 'score_asc': sorted.sort((a, b) => a.score - b.score); break;
+      case 'amount_desc': sorted.sort((a, b) => (b.amount || 0) - (a.amount || 0)); break;
+      case 'deadline_asc': sorted.sort((a, b) => new Date(a.deadline || 0) - new Date(b.deadline || 0)); break;
+      default: break;
+    }
+    return sorted;
+  }, [recommendations, eligibleOnly, searchTerm, sortBy]);
+
+  const stats = useMemo(() => {
+    const eligibleCount = recommendations.filter((r) => r.eligible).length;
+    const totalValue = recommendations.reduce((sum, r) => sum + (r.amount || 0), 0);
+    const avgScore = recommendations.length
+      ? Math.round(recommendations.reduce((sum, r) => sum + (r.score || 0), 0) / recommendations.length)
+      : 0;
+    return { eligibleCount, totalValue, avgScore };
+  }, [recommendations]);
+
+  const scoreColor = (score) => (score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#f87171');
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }} className="animate-fade-in">
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-          <HiSparkles /> AI Recommendation Engine
+          <HiSparkles /> AI Funding Match Engine
         </div>
         <h1 style={{ fontSize: '2.25rem', fontWeight: '800', margin: '0 0 0.5rem 0', background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Personalized Funding Recommendations
+          Funding Recommendations
         </h1>
         <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.95rem' }}>
-          Tailored grant opportunities ranked by domain relevance, eligibility criteria, and past success probability.
+          AI-ranked funding opportunities matched to your research profile.
         </p>
       </div>
 
       {loading ? (
         <LoadingSpinner />
+      ) : needsGeneration ? (
+        <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
+          <HiSparkles style={{ fontSize: '2rem', color: '#38bdf8', marginBottom: '0.75rem' }} />
+          <p style={{ color: '#cbd5e1', marginBottom: '1.5rem' }}>
+            You haven't generated funding recommendations yet.
+          </p>
+          {error && <p style={{ color: '#f87171', marginBottom: '1rem' }}>{error}</p>}
+          <button className="btn-primary" onClick={handleGenerate} disabled={generating}>
+            {generating ? 'Generating...' : 'Generate Recommendations'}
+          </button>
+        </div>
       ) : error ? (
         <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: '#f87171' }}>
           <HiExclamationCircle style={{ fontSize: '2rem', marginBottom: '0.75rem' }} />
@@ -98,20 +144,20 @@ export default function RecommendationsPage() {
         </div>
       ) : (
         <>
-          {/* Stats Bar */}
+          {/* Stats bar */}
           {recommendations.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Eligible Grants</div>
-                <div style={{ color: '#10b981', fontSize: '1.6rem', fontWeight: '800' }}>{eligibleCount} / {recommendations.length}</div>
+                <div style={{ color: '#10b981', fontSize: '1.6rem', fontWeight: '800' }}>{stats.eligibleCount} / {recommendations.length}</div>
               </div>
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Total Potential Value</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.6rem', fontWeight: '800' }}>${totalValue.toLocaleString()}</div>
+                <div style={{ color: '#f8fafc', fontSize: '1.6rem', fontWeight: '800' }}>${stats.totalValue.toLocaleString()}</div>
               </div>
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Average Score</div>
-                <div style={{ color: '#38bdf8', fontSize: '1.6rem', fontWeight: '800' }}>{avgScore}</div>
+                <div style={{ color: '#38bdf8', fontSize: '1.6rem', fontWeight: '800' }}>{stats.avgScore}</div>
               </div>
               <div className="glass-card" style={{ padding: '1.25rem 1.5rem' }}>
                 <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Bookmarked</div>
@@ -120,7 +166,7 @@ export default function RecommendationsPage() {
             </div>
           )}
 
-          {/* Filter & Controls Bar */}
+          {/* Filter / search / sort bar */}
           <div className="glass-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
             <div style={{ position: 'relative', flex: '1 1 220px' }}>
               <HiSearch style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -128,7 +174,7 @@ export default function RecommendationsPage() {
                 type="text"
                 className="glass-input"
                 style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '2.5rem' }}
-                placeholder="Search by grant title or agency..."
+                placeholder="Search by title or agency..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -141,24 +187,24 @@ export default function RecommendationsPage() {
 
             <HiSortAscending style={{ color: '#94a3b8' }} />
             <select className="glass-input" value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ minWidth: '190px' }}>
-              <option value="score_desc" style={{ background: '#030712' }}>Highest Match Score</option>
-              <option value="score_asc" style={{ background: '#030712' }}>Lowest Match Score</option>
-              <option value="amount_desc" style={{ background: '#030712' }}>Highest Funding Amount</option>
+              <option value="score_desc" style={{ background: '#030712' }}>Best Score First</option>
+              <option value="score_asc" style={{ background: '#030712' }}>Lowest Score First</option>
+              <option value="amount_desc" style={{ background: '#030712' }}>Highest Amount First</option>
+              <option value="deadline_asc" style={{ background: '#030712' }}>Deadline Soonest</option>
             </select>
 
-            <button className="btn-outline" onClick={fetchRecommendations} style={{ marginLeft: 'auto' }}>
-              Refresh Recommendations
+            <button className="btn-outline" onClick={handleGenerate} disabled={generating} style={{ marginLeft: 'auto' }}>
+              {generating ? 'Refreshing...' : 'Regenerate'}
             </button>
           </div>
 
-          {/* Grants Grid */}
-          {sorted.length === 0 ? (
+          {processed.length === 0 ? (
             <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>
-              No recommendations match your parameters.
+              No recommendations match your filters.
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.75rem' }}>
-              {sorted.map((rec) => {
+              {processed.map((rec) => {
                 const isBookmarked = bookmarked.includes(rec.opportunity_id);
                 return (
                   <div key={rec.opportunity_id} className="glass-card" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -173,7 +219,7 @@ export default function RecommendationsPage() {
                           {rec.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE'}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ color: '#38bdf8', fontWeight: '700', fontSize: '0.9rem' }}>{rec.score?.toFixed(1)} score</span>
+                          <span style={{ color: scoreColor(rec.score), fontWeight: '700', fontSize: '0.9rem' }}>{rec.score?.toFixed(1)} score</span>
                           <button
                             onClick={() => toggleBookmark(rec.opportunity_id)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: isBookmarked ? '#facc15' : '#94a3b8', fontSize: '1.1rem' }}
@@ -184,18 +230,28 @@ export default function RecommendationsPage() {
                       </div>
 
                       <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: '0 0 0.6rem 0', color: '#f8fafc' }}>{rec.title}</h3>
-                      <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0' }}>{rec.agency || 'Funding Agency'}</p>
+                      <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0' }}>{rec.agency || 'Agency not specified'}</p>
                       <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: 0 }}>{rec.reasoning}</p>
                     </div>
 
                     <div style={{ marginTop: '1.5rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
                         <span style={{ color: '#10b981', fontWeight: '700', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <HiCurrencyDollar /> {rec.amount ? `$${rec.amount.toLocaleString()}` : 'Amount N/A'}
                         </span>
                         <span style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <HiCalendar /> {rec.deadline ? rec.deadline.split('T')[0] : 'No deadline'}
                         </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => setSelectedGrant(rec)} className="btn-outline" style={{ flex: 1, fontSize: '0.85rem' }}>
+                          View Details
+                        </button>
+                        {rec.url && (
+                          <a href={rec.url} target="_blank" rel="noopener noreferrer" className="btn-outline" style={{ display: 'flex', alignItems: 'center', padding: '0 0.75rem' }}>
+                            <HiExternalLink />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -205,6 +261,8 @@ export default function RecommendationsPage() {
           )}
         </>
       )}
+
+      <GrantDetailsModal grant={selectedGrant} onClose={() => setSelectedGrant(null)} />
     </div>
   );
 }
