@@ -23,43 +23,10 @@ logger = logging.getLogger(__name__)
 # Create PostgreSQL database tables automatically
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    description="AI-Powered Research Funding & Innovation Intelligence Platform API (Milestone 2)",
-    version=settings.VERSION,
-)
+from contextlib import asynccontextmanager
 
-# CORS middleware for frontend communication
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "*"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include API Routers under standard API prefix
-app.include_router(auth_routes.router, prefix=settings.API_PREFIX)
-app.include_router(profile_routes.router, prefix=settings.API_PREFIX)
-app.include_router(dataset_routes.router, prefix=settings.API_PREFIX)
-app.include_router(admin_routes.router, prefix=settings.API_PREFIX)
-app.include_router(grant_matching_routes.router, prefix=settings.API_PREFIX)
-app.include_router(scoring_routes.router, prefix=settings.API_PREFIX)
-app.include_router(commercialization_routes.router, prefix=settings.API_PREFIX)
-
-# added by member 1
-app.include_router(patent_routes.router, prefix=settings.API_PREFIX)
-app.include_router(technology_routes.router, prefix=settings.API_PREFIX)
-app.include_router(trends_routes.router, prefix=settings.API_PREFIX)
-
-
-@app.on_event("startup")
-def startup_db_seed():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         # Seed default roles
@@ -88,16 +55,57 @@ def startup_db_seed():
                 role="administrator",
                 is_active=True
             )
-
             db.add(admin)
 
         db.commit()
 
+        # Seed funding opportunities if empty
+        from routers.grant_matching_routes import seed_funding_opportunities_if_empty
+        seed_funding_opportunities_if_empty(db)
+
     except Exception as e:
         logger.warning(f"Startup DB seed exception: {e}")
-
     finally:
         db.close()
+    yield
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description="AI-Powered Research Funding & Innovation Intelligence Platform API (Milestone 2)",
+    version=settings.VERSION,
+    lifespan=lifespan,
+)
+
+# CORS middleware for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "*"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+all_routers = [
+    auth_routes.router,
+    profile_routes.router,
+    dataset_routes.router,
+    admin_routes.router,
+    grant_matching_routes.router,
+    scoring_routes.router,
+    commercialization_routes.router,
+    patent_routes.router,
+    technology_routes.router,
+    trends_routes.router,
+]
+
+for prefix in set([settings.API_PREFIX, "/api", "/api/v1"]):
+    for router in all_routers:
+        app.include_router(router, prefix=prefix)
 
 
 @app.get("/")

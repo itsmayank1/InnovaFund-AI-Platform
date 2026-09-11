@@ -1,4 +1,4 @@
-from .conftest import register, login
+from conftest import register, login
 
 def auth(client, email='integration_user@example.com', password='StrongPass123!'):
     register(client, email=email, password=password)

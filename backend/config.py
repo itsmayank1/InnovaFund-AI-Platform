@@ -1,5 +1,5 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "InnovaFund AI"
@@ -24,8 +24,6 @@ class Settings(BaseSettings):
     LENS_API_KEY: str = os.getenv("LENS_API_KEY", "")
     OPENALEX_MAILTO: str = os.getenv("OPENALEX_MAILTO", "admin@innovafund.ai")
 
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
 
 settings = Settings()

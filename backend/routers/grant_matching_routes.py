@@ -28,16 +28,6 @@ router = APIRouter(
 matching_engine = GrantMatchingRulesEngine()
 
 
-@router.on_event("startup")
-def init_funding_data():
-    """Ensure funding opportunities table is seeded on startup."""
-    from database import SessionLocal
-    db = SessionLocal()
-    try:
-        seed_funding_opportunities_if_empty(db)
-    finally:
-        db.close()
-
 
 @router.post("/match", response_model=GrantMatchResponse, summary="Match Funding Opportunities (Member 2)")
 def match_grants(

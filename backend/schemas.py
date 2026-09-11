@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime, date
 
@@ -36,8 +36,7 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Publication & Patent Schemas
 class PublicationCreate(BaseModel):
@@ -53,8 +52,7 @@ class PublicationResponse(PublicationCreate):
     id: int
     fetched_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PatentCreate(BaseModel):
     patent_number: str
@@ -68,8 +66,7 @@ class PatentResponse(PatentCreate):
     id: int
     fetched_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Profile Schemas
 class ProfileUpdate(BaseModel):
@@ -91,8 +88,7 @@ class ProfileResponse(BaseModel):
     patents: List[PatentResponse] = []
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Audit Log & Notification Schemas
 class AuditLogResponse(BaseModel):
@@ -103,8 +99,7 @@ class AuditLogResponse(BaseModel):
     details: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NotificationResponse(BaseModel):
     id: int
@@ -113,8 +108,7 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
@@ -136,8 +130,7 @@ class FundingOpportunityResponse(BaseModel):
     funding_type: str
     external_link: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GrantMatchRequest(BaseModel):
@@ -206,8 +199,7 @@ class RecommendationOut(BaseModel):
     eligible: bool
     reasoning: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GenerateRecommendationsRequest(BaseModel):
     researcher_id: int
@@ -228,8 +220,7 @@ class EmergingTechTrendResponse(BaseModel):
     is_emerging: bool
     description: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TechnologyMaturityResponse(BaseModel):
@@ -243,8 +234,7 @@ class TechnologyMaturityResponse(BaseModel):
     adoption_velocity: str
     commercial_readiness: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CompetitorActivityResponse(BaseModel):
@@ -255,8 +245,7 @@ class CompetitorActivityResponse(BaseModel):
     market_share_pct: float
     activity_status: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==========================================
