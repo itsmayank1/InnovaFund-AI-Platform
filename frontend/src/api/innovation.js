@@ -13,8 +13,10 @@ import client from './client';
 // representation, so this file normalizes the API responses.
 // ---------------------------------------------------------------------------
 
+// Real data by default. Set VITE_USE_MOCK_INNOVATION=true to fall back to the
+// bundled demo portfolio (offline demos only).
 const USE_MOCK =
-  (import.meta.env?.VITE_USE_MOCK_INNOVATION ?? 'true') !== 'false';
+  (import.meta.env?.VITE_USE_MOCK_INNOVATION ?? 'false') === 'true';
 
 const delay = (ms = 450) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -399,32 +401,29 @@ export async function getInnovationPortfolio() {
     };
   }
 
-  // The current Member 4 backend does not expose /scoring/portfolio.
-  // Therefore, retrieve each known project through GET /scoring/{id}.
-  const results = await Promise.all(
-    PROJECT_CATALOG.map(async (project) => {
-      const response = await client.get(
-        `/scoring/${project.project_id}`
-      );
+  // Member 4 portfolio API: every project is scored live by the weighted
+  // five-pillar engine (GET /api/portfolio).
+  const response = await client.get('/portfolio');
+  const data = response.data || {};
 
-      return normalizeScoreResponse(response.data, project);
-    })
-  );
-
-  const portfolioAverage =
-    results.length > 0
-      ? Math.round(
-          results.reduce(
-            (sum, project) => sum + project.overall_score,
-            0
-          ) / results.length
-        )
-      : 0;
+  const projects = (data.projects || []).map((project) => ({
+    project_id: project.project_id,
+    title: project.title,
+    domain: project.domain,
+    stage: project.stage,
+    overall_score: Number(project.overall_score || 0),
+    band: project.band,
+    trl: project.trl,
+    components: project.components || {},
+    raw: project,
+  }));
 
   return {
-    weights: SCORE_WEIGHTS,
-    projects: results,
-    portfolio_average: portfolioAverage,
+    weights: data.weights || SCORE_WEIGHTS,
+    projects,
+    portfolio_average: Number(data.portfolio_average || 0),
+    high_potential_count: Number(data.high_potential_count || 0),
+    commercialization_ready_count: Number(data.commercialization_ready_count || 0),
   };
 }
 
@@ -450,22 +449,25 @@ export async function getInnovationPipeline() {
     };
   }
 
-  // The current Member 4 backend does not expose /scoring/pipeline.
-  // Build the pipeline from the same project score endpoints.
-  const portfolio = await getInnovationPortfolio();
+  // Member 4 pipeline API: the scored portfolio grouped by commercialization
+  // stage (GET /api/portfolio/pipeline).
+  const [pipelineResponse, portfolio] = await Promise.all([
+    client.get('/portfolio/pipeline'),
+    getInnovationPortfolio(),
+  ]);
 
-  const grouped = PIPELINE_STAGES.reduce((acc, stage) => {
-    acc[stage] = portfolio.projects.filter(
-      (project) => project.stage === stage
+  const data = pipelineResponse.data || {};
+  const stages = data.stages || PIPELINE_STAGES;
+  const byId = new Map(portfolio.projects.map((p) => [p.project_id, p]));
+
+  const grouped = stages.reduce((acc, stage) => {
+    acc[stage] = (data.grouped?.[stage] || []).map(
+      (project) => byId.get(project.project_id) || project
     );
-
     return acc;
   }, {});
 
-  return {
-    stages: PIPELINE_STAGES,
-    grouped,
-  };
+  return { stages, grouped, counts: data.counts || {} };
 }
 
 // ---------------------------------------------------------------------------
@@ -491,20 +493,25 @@ export async function getInnovationScoreDetail(projectId) {
     };
   }
 
-  const catalogProject = getCatalogProject(projectId);
+  // Member 4 score detail: full pillar breakdown, derived scores and narrative.
+  const response = await client.get(`/portfolio/project/${projectId}`);
+  const data = response.data || {};
 
-  if (!catalogProject) {
-    throw new Error(`Unknown project ID: ${projectId}`);
-  }
-
-  const response = await client.get(
-    `/scoring/${catalogProject.project_id}`
-  );
-
-  return normalizeScoreResponse(
-    response.data,
-    catalogProject
-  );
+  return {
+    project_id: data.project_id,
+    title: data.title,
+    domain: data.domain,
+    stage: data.stage,
+    band: data.band,
+    trl: data.trl,
+    overall_score: Number(data.overall_score || 0),
+    components: data.components || {},
+    derived_scores: data.derived_scores || {},
+    explanation: data.explanation || {},
+    weights: SCORE_WEIGHTS,
+    computed_overall: Number(data.overall_score || 0),
+    raw: data,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -620,20 +627,15 @@ export async function getCommercializationRecommendations(projectId) {
     };
   }
 
-  const catalogProject = getCatalogProject(projectId);
-
-  if (!catalogProject) {
-    throw new Error(`Unknown project ID: ${projectId}`);
-  }
+  // Member 5's endpoint keys on a numeric project id; catalogue ids look like
+  // "PRJ-007", so take the trailing number.
+  const numericId = Number(String(projectId).replace(/\D/g, '')) || 1;
 
   const response = await client.get(
-    `/commercialization/recommendations/${catalogProject.project_id}`
+    `/commercialization/recommendations/${numericId}`
   );
 
-  return normalizeCommercializationResponse(
-    response.data,
-    catalogProject.ui_project_id
-  );
+  return normalizeCommercializationResponse(response.data, projectId);
 }
 
 // ---------------------------------------------------------------------------
@@ -669,21 +671,20 @@ export async function getAllCommercializationRecommendations() {
     };
   }
 
-  const responses = await Promise.all(
-    PROJECT_CATALOG.map(async (project) => {
-      const result =
-        await getCommercializationRecommendations(
-          project.ui_project_id
-        );
+  const portfolio = await getInnovationPortfolio();
+  const topProjects = portfolio.projects.slice(0, 6);
 
-      return result.recommendations.map(
-        (recommendation) => ({
-          ...recommendation,
-          project_id: project.ui_project_id,
-          project_title:
-            result.project_title || project.title,
-        })
+  const responses = await Promise.all(
+    topProjects.map(async (project) => {
+      const result = await getCommercializationRecommendations(
+        project.project_id
       );
+
+      return result.recommendations.map((recommendation) => ({
+        ...recommendation,
+        project_id: project.project_id,
+        project_title: result.project_title || project.title,
+      }));
     })
   );
 

@@ -3,6 +3,7 @@ import {
   PERIODS,
   fetchTopics,
   fetchHotspotsAndDomains,
+  fetchEmerging,
 } from "../services/trendsApi";
 import "../styles/trends.css";
 
@@ -248,6 +249,7 @@ export default function Trends() {
   const [topics, setTopics] = useState([]);
   const [hotspots, setHotspots] = useState([]);
   const [domains, setDomains] = useState([]);
+  const [emerging, setEmerging] = useState({ count: 0, threshold: 0.15, topics: [] });
 
   const [selectedTopic, setSelectedTopic] = useState("");
 
@@ -255,10 +257,11 @@ export default function Trends() {
     setStatus("loading");
 
     try {
-      const [topicData, hotspotDomainData] =
+      const [topicData, hotspotDomainData, emergingData] =
         await Promise.all([
           fetchTopics(),
           fetchHotspotsAndDomains(),
+          fetchEmerging(),
         ]);
 
       const safeTopics = Array.isArray(topicData)
@@ -278,6 +281,7 @@ export default function Trends() {
       setTopics(safeTopics);
       setHotspots(safeHotspots);
       setDomains(safeDomains);
+      setEmerging(emergingData || { count: 0, threshold: 0.15, topics: [] });
 
       setSelectedTopic(
         safeTopics[0]?.id || ""
@@ -707,6 +711,82 @@ export default function Trends() {
                 : []
             }
           />
+
+        </div>
+      )}
+
+      {/* =================================================
+          EMERGING TOPICS
+      ================================================= */}
+
+      {emerging.topics.length > 0 && (
+        <div className="card compact">
+
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">
+                Emerging topic detection
+              </span>
+
+              <h2>
+                Emerging Topics
+              </h2>
+
+              <p>
+                Topics growing faster than{" "}
+                {Math.round(emerging.threshold * 100)}% against
+                the previous period.
+              </p>
+            </div>
+
+            <div className="hotspot-count">
+              {emerging.count} detected
+            </div>
+          </div>
+
+          <div className="hotspot-list">
+            {emerging.topics.map((topic, index) => (
+              <div className="hotspot-row" key={topic.id || index}>
+
+                <div className="hotspot-rank">
+                  #{index + 1}
+                </div>
+
+                <div className="hotspot-content">
+                  <div className="hotspot-title">
+                    <strong>{topic.name}</strong>
+                    <span className="chip hot">
+                      <Icon name="flame" size={10} />
+                      Emerging
+                    </span>
+                  </div>
+
+                  <p>
+                    {topic.domain}
+                    <span className="trend-separator">·</span>
+                    {topic.document_count} documents clustered
+                  </p>
+
+                  <div className="chips">
+                    {Array.isArray(topic.keywords) &&
+                      topic.keywords.slice(0, 6).map((keyword) => (
+                        <span className="chip" key={keyword}>
+                          {keyword}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="hotspot-score-wrap">
+                  <span className="muted">Growth</span>
+                  <strong className="hotspot-score">
+                    +{Math.round(Number(topic.velocity || 0) * 100)}%
+                  </strong>
+                </div>
+
+              </div>
+            ))}
+          </div>
 
         </div>
       )}

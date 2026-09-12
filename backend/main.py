@@ -17,6 +17,7 @@ from routers import auth_routes, profile_routes, dataset_routes, admin_routes, g
 from routers import scoring_routes, commercialization_routes
 from routers import technology_routes
 from routers import trends_routes
+from routers import portfolio_routes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ all_routers = [
     patent_routes.router,
     technology_routes.router,
     trends_routes.router,
+    portfolio_routes.router,
 ]
 
 for prefix in set([settings.API_PREFIX, "/api", "/api/v1"]):
