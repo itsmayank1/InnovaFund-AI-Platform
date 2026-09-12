@@ -4,6 +4,7 @@ import {
   fetchTopics,
   fetchHotspotsAndDomains,
 } from "../services/trendsApi";
+import "../styles/trends.css";
 
 /* =========================================================
    ICONS
@@ -314,7 +315,7 @@ export default function Trends() {
 
   if (status === "loading") {
     return (
-      <section>
+      <section className="trends-page">
         <div className="page-head">
           <div>
             <span className="eyebrow">
@@ -339,7 +340,7 @@ export default function Trends() {
 
   if (status === "error") {
     return (
-      <section>
+      <section className="trends-page">
         <div className="page-head">
           <div>
             <span className="eyebrow">
@@ -375,7 +376,7 @@ export default function Trends() {
 
   if (status === "empty") {
     return (
-      <section>
+      <section className="trends-page">
         <div className="page-head">
           <div>
             <span className="eyebrow">
@@ -441,7 +442,7 @@ export default function Trends() {
   ===================================================== */
 
   return (
-    <section>
+    <section className="trends-page">
 
       {/* =================================================
           PAGE HEADER
