@@ -1,114 +1,143 @@
-# InnovaFund AI — Enterprise AI-Powered Research Funding & Innovation Intelligence Platform
+# InnovaFund — Research Funding & Innovation Intelligence Platform
 
-> **Official Repository**: [springboardmentor825/Research-Funding-Innovation-Team-3](https://github.com/springboardmentor825/Research-Funding-Innovation-Team-3/tree/mayank)  
-> **Team Branch**: `mayank`  
-> **Presenter / Lead Developer**: Mayank Upadhyay (Platform Administrator)  
+**Infosys Springboard Virtual Internship · Team 3**
+Mentor: Ms. Reshma Gollapalli
 
----
-
-## 🌟 Overview
-**InnovaFund AI** is a 4-tier enterprise intelligence platform designed to bridge the gap between academic research literature, global patent white-space analysis, and strategic grant funding matches.
-
-By ingesting live data streams from **OpenAlex** (250M+ research papers) and **USPTO / Google Patents** (140M+ patent records), InnovaFund AI matches researchers, startup founders, and R&D innovation managers with a **$15B+ global funding pool**.
+> **Deliverable branch:** `final-integration` — this branch holds the complete,
+> integrated project. `main` is kept as a pointer README only.
 
 ---
 
-## 🚀 Key Features
+## Overview
 
-- **🔐 Enterprise Authentication & RBAC**:
-  - **Firebase Social SSO**: Single-click **Google & GitHub OAuth** integration.
-  - **Persona-Based RBAC**: Dynamic permissions across 4 platform personas: *Researcher*, *Startup Founder*, *Innovation Manager*, and *Administrator*.
-  - **Session Security**: Signed JWT access tokens with 24-hour expiration.
-
-- **📊 Enterprise Intelligence Dashboard (`/dashboard`)**:
-  - **Citation Velocity Tracker**: Dynamic SVG charts plotting publication citations over time.
-  - **Patent Landscape Breakdown**: Stacked metrics showing Granted vs. Pending IP.
-  - **AI Funding Match Engine**: Real-time grant recommendations ($250k–$1.2M) matched to user research profile.
-  - **Portfolio CSV Export**: Single-click CSV data export for reporting.
-
-- **📚 Academic Publications Explorer (`/publications`)**:
-  - Live REST API search engine querying OpenAlex's 250M+ paper catalog.
-  - Open-access badges, journal impact indicators, citation metrics, and direct DOI links.
-
-- **💡 Global Patent White-Space Explorer (`/patents`)**:
-  - Search engine across USPTO and Google Patents repositories.
-  - Patent legal status filters (*All*, *Granted*, *Pending*, *Expired*), filing dates, and assignee details.
-
-- **🏛️ Interactive System Architecture Explorer (`/architecture`)**:
-  - 4-Tier Visual Architecture diagram (Presentation, API, Security, Database).
-  - 4-Step Workflow breakdown and 11-table PostgreSQL ER Schema viewer.
-
-- **⚙️ System Settings & API Health Command Center (`/settings`)**:
-  - Real-time database latency diagnostics (**`~2ms` PostgreSQL ping**, **`~4ms` MongoDB ping**).
-  - External API credential configuration for OpenAlex, The Lens, and SerpAPI.
-
-- **🛡️ Admin Control Console & Security Audit Logs (`/admin`)**:
-  - Platform user management table and RBAC role assignment.
-  - Pre-Seed Dataset populator (1-click demo test data generator).
-  - Live security audit stream logging `USER_LOGIN`, `DATASET_QUERY`, and `OAUTH_LOGIN` events.
+Researchers, startups, universities and innovation centers track funding calls,
+publication trends, patent activity and commercialization pathways across dozens of
+disconnected portals. InnovaFund brings them into one platform: it discovers relevant
+funding, analyses research and technology trends, maps the patent landscape, scores
+innovation potential and suggests commercialization routes — through role-based
+dashboards.
 
 ---
 
-## 🏗️ Technical Architecture & Tech Stack
+## Team
 
-```mermaid
-graph TD
-    User["👤 User / Evaluator"] --> Frontend["🖥️ React Vite Frontend (Port 5173)"]
-    Frontend --> Auth["🔐 Firebase Auth (Google & GitHub OAuth)"]
-    Frontend --> Backend["⚡ FastAPI Backend (Port 8000)"]
-    Backend --> Postgres["🐘 PostgreSQL 16 (Relational DB - 11 Schemas)"]
-    Backend --> Mongo["🍃 MongoDB 7 (Document Cache - <5ms Latency)"]
-    Backend --> APIs["🌐 External APIs (OpenAlex & USPTO)"]
+| Member | Module |
+|---|---|
+| Navya | Authentication, roles & research profiles |
+| Mayank | Grant matching & technology intelligence, executive analytics |
+| Kesiya Sunny | Patent landscape analysis & recommendations |
+| Venkatesh Kulkarni | Innovation scoring engine, branch integration |
+| Kanishka | Platform APIs, commercialization & dashboards |
+| Anuhya Kurakula | Research trend intelligence, dataset services |
+| Saumyaa | Testing, QA & milestone reporting |
+| Nithya | Documentation & review support |
+
+---
+
+## Repository layout
+
+```
+backend/                     FastAPI application (main.py) — routers, services, models
+innovation-scoring-service/  Innovation scoring microservice (also embedded in the API)
+frontend/                    React 19 + Vite single-page application
+backend/data/                Funding opportunities dataset (5,000 rows)
+backend/lens-export.csv      Lens.org patent dataset (10,000 patents, 37 attributes)
+docs/                        Architecture, database and API documentation
 ```
 
-- **Frontend**: React 18, Vite, Custom HSL Obsidian Theme, Google Fonts (`Outfit` & `Inter`).
-- **Backend**: FastAPI (Python 3.11), Pydantic Schema Validation, PyJWT, Passlib.
-- **Databases**: PostgreSQL 16 (Relational Data), MongoDB 7 (JSON API Cache), SQLite Engine Fallback.
-- **Authentication**: Firebase Auth Web SDK (`innovafundai`).
+---
+
+## Tech stack
+
+- **Frontend:** React 19 · Vite · React Router · axios
+- **Backend:** Python · FastAPI · Uvicorn · Pydantic · SQLAlchemy · Alembic
+- **Intelligence:** scikit-learn (TF-IDF, cosine similarity) · pandas · rule and
+  weighted-scoring engines
+- **Databases:** PostgreSQL (primary) · SQLite (automatic fallback) · MongoDB (optional)
+- **Auth:** JWT (python-jose) · bcrypt · Google OAuth
+- **DevOps & testing:** Docker · Docker Compose · pytest
 
 ---
 
-## ⚡ Quick Start Guide
+## Running the project
 
-### 1. Backend Setup
+**Backend** (from the `backend` folder):
+
 ```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate   # On Windows
 pip install -r requirements.txt
-python -m uvicorn main:app --reload
+uvicorn main:app --reload --port 8000
 ```
-*Backend API server runs at: `http://localhost:8000`*  
-*Interactive Swagger API Docs: `http://localhost:8000/docs`*
 
-### 2. Frontend Setup
+The API is then available at `http://127.0.0.1:8000/api`, with interactive docs at
+`http://127.0.0.1:8000/docs`. If PostgreSQL is not running, the backend falls back to
+SQLite automatically.
+
+**Seed the datasets** (run these *after* the backend has started once, so the tables
+exist):
+
 ```bash
-cd frontend
+python load_funding_csv.py    # funding opportunities
+python seed_patents.py        # 10,000 Lens.org patents
+```
+
+**Frontend** (from the `frontend` folder):
+
+```bash
 npm install
 npm run dev
 ```
-*Frontend web application runs at: `http://localhost:5173`*
 
-### 3. Run Milestone 2 Automated Test Suite
-```bash
-python -m pytest backend/tests/test_grant_matching.py
-```
-*Runs 7/7 automated edge-case unit and integration tests (100% pass rate).*
-
+The app runs at `http://localhost:5173` and calls the backend at
+`http://127.0.0.1:8000/api`.
 
 ---
 
-## 🔑 Demo Access Credentials
+## Modules and APIs
 
-| User Persona | Email | Password |
-| :--- | :--- | :--- |
-| **Administrator (Pre-Seeded)** | `admin@researchsphere.ai` | `Admin@123456` |
-| **Social SSO** | Click **"Sign in with Google"** or **"Sign in with GitHub"** | Authentic Firebase OAuth |
+| Module | Endpoints | Status |
+|---|---|---|
+| Authentication & roles | `/api/auth` | Completed |
+| Research profiles | `/api/profiles` | Completed |
+| Admin (users, audit logs, metrics) | `/api/admin` | Completed |
+| Dataset services (OpenAlex, CrossRef, Semantic Scholar) | `/api/datasets` | Integrated |
+| Funding recommendations | `/api/recommendations` | Completed |
+| Grant matching & eligibility | `/api/grants` | Completed |
+| Patent landscape analysis | `/api/patents` | Completed |
+| Technology intelligence | `/api/technology` | Completed |
+| Innovation scoring | `/api/scoring` | Completed |
+| Research trends | `/api/trends` | Integrated |
+| Commercialization recommendations | `/api/commercialization` | In progress |
+| Reports, exports and alerts | — | Future scope |
+
+### Scoring logic
+
+- **Funding recommendation:** TF-IDF + cosine domain fit (60%), past success rate (20%),
+  deadline window (10%), log-scaled amount (10%), clamped to 0–1 and reported as 0–100
+  with reasoning.
+- **Patent strength:** 0.6 × citation impact + 0.4 × recency (patents older than 20 years
+  score 0 on recency).
+- **Innovation score:** weighted five-pillar model — research novelty 30%, patent strength
+  20%, market potential 20%, technology maturity 15%, funding relevance 15% — mapped to
+  bands from Very Low to Very High.
 
 ---
 
-## 📄 Documentation Directory (`docs/`)
-- [`docs/InnovaFund_AI_Milestone1_Presentation_Deck.md`](docs/InnovaFund_AI_Milestone1_Presentation_Deck.md): Slide-by-Slide Presentation Deck Content Guide.
-- [`docs/InnovaFund_AI_Milestone1_Final_Showcase_Guide.pdf`](docs/InnovaFund_AI_Milestone1_Final_Showcase_Guide.pdf): Complete Evaluator Presentation PDF Guide.
-- [`docs/ARCHITECTURE_GUIDE.md`](docs/ARCHITECTURE_GUIDE.md): 4-Tier Architecture Specification.
-- [`docs/DATABASE_DESIGN.md`](docs/DATABASE_DESIGN.md): PostgreSQL 11-Table Relational Schema Design.
+## Verified status
+
+- Backend boots and serves **70 routes** with no server errors on any GET endpoint
+- Register and login return 200; scoring, trends, technology, patents and
+  commercialization endpoints all return 200
+- Seeding loads **10,000 patents**, producing 10 technology clusters and 168
+  year × domain trend points
+- Frontend production build succeeds
+- Test suites: innovation scoring (27), grant matching and technology intelligence (11),
+  recommendation engine (7), patent analysis (5)
+
+---
+
+## Integration
+
+All nine member branches were merged into this branch through pull requests #2–#5,
+including restoring a previously reverted merge and resolving conflicts across
+`main.py`, `models.py`, `schemas.py`, `requirements.txt` and the frontend routing files.
+Please create new branches from `final-integration`, not from `main`.
