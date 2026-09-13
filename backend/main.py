@@ -259,17 +259,35 @@ def generate_recommendations(
     ).first()
 
     if not profile:
-        raise HTTPException(
-            status_code=404,
-            detail="Research profile not found for this researcher"
+        # A user who has never opened the Research Profile page has no profile
+        # row yet. Create a starter profile from their account so the engine
+        # can run; the user refines it on the Research Profile page.
+        user = db.query(User).filter(User.id == req.researcher_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Researcher not found"
+            )
+
+        profile = ResearchProfile(
+            user_id=req.researcher_id,
+            title="Researcher / Specialist",
+            bio="Research interest in innovation, artificial intelligence, and deep tech.",
+            technology_areas="Artificial Intelligence, Machine Learning, Data Analytics",
         )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
 
     opportunities = db.query(FundingOpportunity).all()
 
     if not opportunities:
         raise HTTPException(
             status_code=404,
-            detail="No funding opportunities available"
+            detail=(
+                "No funding opportunities in the database. "
+                "Load them with: python load_funding_csv.py"
+            )
         )
 
     profile_text = build_profile_text(profile)
