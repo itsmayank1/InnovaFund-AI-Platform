@@ -78,14 +78,26 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend communication
+# Local dev origins are always allowed. In production add the deployed
+# frontend URL via FRONTEND_ORIGINS (comma-separated), e.g.
+#   FRONTEND_ORIGINS=https://innovafund.vercel.app
+# A wildcard is not used here because browsers reject "*" together with
+# allow_credentials=True.
+_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+_EXTRA_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "*"
-    ],
+    allow_origins=_DEV_ORIGINS + _EXTRA_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

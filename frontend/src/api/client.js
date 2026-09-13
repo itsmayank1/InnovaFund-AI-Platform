@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Backend base URL. Set VITE_API_URL in the deployment environment
+// (e.g. https://innovafund-api.onrender.com). Falls back to the local backend.
+const API_ROOT =
+  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 const client = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: `${API_ROOT}/api`,
 });
 
 client.interceptors.request.use((config) => {

@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const recClient = axios.create({ baseURL: 'http://127.0.0.1:8000' });
+// Backend base URL. Set VITE_API_URL in the deployment environment
+// (e.g. https://innovafund-api.onrender.com). Falls back to the local backend.
+const API_ROOT =
+  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+const recClient = axios.create({ baseURL: API_ROOT });
 recClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
