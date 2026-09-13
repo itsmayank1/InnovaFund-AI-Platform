@@ -25,7 +25,7 @@ export default function RecommendationsPage() {
     try { return JSON.parse(localStorage.getItem(BOOKMARK_KEY) || '[]'); } catch { return []; }
   });
 
-  const researcherId = user?.id;
+  const researcherId = user?.id || user?.user_id || 1;
 
   useEffect(() => {
     if (researcherId) loadData();
@@ -38,16 +38,41 @@ export default function RecommendationsPage() {
     setNeedsGeneration(false);
     try {
       const data = await getRecommendations(researcherId);
-      setRecommendations(data || []);
+      if (data && data.length > 0) {
+        setRecommendations(data);
+      } else {
+        await handleAutoGenerate();
+      }
     } catch (err) {
       if (err.response?.status === 404) {
-        setNeedsGeneration(true);
+        // First visit for this researcher — auto-generate recommendations seamlessly
+        await handleAutoGenerate();
       } else {
         console.error(err);
         setError('Unable to load funding recommendations right now. Please try again.');
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAutoGenerate = async () => {
+    setGenerating(true);
+    try {
+      const data = await generateRecommendations(researcherId, 10);
+      setRecommendations(data || []);
+      setNeedsGeneration(false);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) {
+        setNeedsGeneration(true);
+        setError('No research profile found — please complete your Research Profile first.');
+      } else {
+        setNeedsGeneration(true);
+        setError('Could not auto-generate recommendations. Click below to try again.');
+      }
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -124,13 +149,18 @@ export default function RecommendationsPage() {
         </p>
       </div>
 
-      {loading ? (
-        <LoadingSpinner />
+      {loading || generating ? (
+        <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
+          <LoadingSpinner />
+          <p style={{ color: '#38bdf8', marginTop: '1rem', fontWeight: '600' }}>
+            AI Match Engine is analyzing and ranking funding opportunities for your profile...
+          </p>
+        </div>
       ) : needsGeneration ? (
         <div className="glass-card" style={{ padding: '3rem', textAlign: 'center' }}>
           <HiSparkles style={{ fontSize: '2rem', color: '#38bdf8', marginBottom: '0.75rem' }} />
           <p style={{ color: '#cbd5e1', marginBottom: '1.5rem' }}>
-            You haven't generated funding recommendations yet.
+            No recommendations generated yet for this profile.
           </p>
           {error && <p style={{ color: '#f87171', marginBottom: '1rem' }}>{error}</p>}
           <button className="btn-primary" onClick={handleGenerate} disabled={generating}>

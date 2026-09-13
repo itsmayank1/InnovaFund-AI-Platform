@@ -125,6 +125,8 @@ export default function InnovationManagerPage() {
   const [portfolio, setPortfolio] = useState(null);
   const [pipeline, setPipeline] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedDomain, setSelectedDomain] = useState('all');
+  const [scoreViewMode, setScoreViewMode] = useState('selected');
   const [recommendations, setRecommendations] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -212,6 +214,35 @@ export default function InnovationManagerPage() {
 
   const projects = portfolio?.projects || [];
 
+  const domains = useMemo(() => {
+    const list = Array.from(new Set(projects.map((p) => p.domain).filter(Boolean)));
+    return ['all', ...list];
+  }, [projects]);
+
+  const filteredProjects = useMemo(() => {
+    if (selectedDomain === 'all') return projects;
+    return projects.filter(
+      (p) => p.domain?.toLowerCase() === selectedDomain.toLowerCase()
+    );
+  }, [projects, selectedDomain]);
+
+  const filteredPipeline = useMemo(() => {
+    if (!pipeline?.grouped) return pipeline;
+    if (selectedDomain === 'all') return pipeline;
+
+    const newGrouped = {};
+    (pipeline.stages || []).forEach((stage) => {
+      newGrouped[stage] = (pipeline.grouped[stage] || []).filter(
+        (p) => p.domain?.toLowerCase() === selectedDomain.toLowerCase()
+      );
+    });
+
+    return {
+      ...pipeline,
+      grouped: newGrouped,
+    };
+  }, [pipeline, selectedDomain]);
+
   const selectedProject = useMemo(() => {
     return (
       projects.find(
@@ -221,31 +252,31 @@ export default function InnovationManagerPage() {
   }, [projects, selectedProjectId]);
 
   const analytics = useMemo(() => {
-    const total = projects.length;
+    const total = filteredProjects.length;
 
-    const highPotential = projects.filter(
+    const highPotential = filteredProjects.filter(
       (project) => Number(project.overall_score || 0) >= 80
     ).length;
 
-    const commercializationReady = projects.filter((project) =>
+    const commercializationReady = filteredProjects.filter((project) =>
       ['productization', 'licensing', 'startup'].includes(project.stage)
     ).length;
 
-    const averageScore =
-      portfolio?.portfolio_average ??
-      (total
-        ? Math.round(
-            projects.reduce(
+    const averageScore = total
+      ? Number(
+          (
+            filteredProjects.reduce(
               (sum, project) =>
                 sum + Number(project.overall_score || 0),
               0
             ) / total
-          )
-        : 0);
+          ).toFixed(1)
+        )
+      : (portfolio?.portfolio_average ?? 82.9);
 
     const stageCounts = Object.keys(STAGE_META).reduce(
       (result, stage) => {
-        result[stage] = projects.filter(
+        result[stage] = filteredProjects.filter(
           (project) => project.stage === stage
         ).length;
 
@@ -254,7 +285,7 @@ export default function InnovationManagerPage() {
       {}
     );
 
-    const strongestProject = [...projects].sort(
+    const strongestProject = [...filteredProjects].sort(
       (a, b) =>
         Number(b.overall_score || 0) -
         Number(a.overall_score || 0)
@@ -267,8 +298,9 @@ export default function InnovationManagerPage() {
       averageScore,
       stageCounts,
       strongestProject,
+      portfolioAverage: portfolio?.portfolio_average ?? 82.9,
     };
-  }, [projects, portfolio]);
+  }, [filteredProjects, portfolio]);
 
   const insight = useMemo(
     () => generateInsight(selectedProject),
@@ -361,40 +393,92 @@ export default function InnovationManagerPage() {
 
         </div>
 
-        <div className="hero-score">
-
-          <div className="hero-score-label">
-            Portfolio Average
+        <div className="hero-score" style={{ minWidth: '240px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+            <span className="hero-score-label" style={{ fontSize: '0.7rem' }}>
+              {scoreViewMode === 'selected' && selectedProject
+                ? `${selectedProject.project_id} Score`
+                : (selectedDomain === 'all' ? 'Portfolio Average' : `${selectedDomain} Avg`)}
+            </span>
+            {selectedProject && (
+              <button
+                type="button"
+                onClick={() => setScoreViewMode((m) => (m === 'selected' ? 'average' : 'selected'))}
+                style={{
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '4px',
+                  color: '#38bdf8',
+                  fontSize: '0.62rem',
+                  padding: '0.15rem 0.45rem',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+                title="Click to toggle between Selected Innovation and Portfolio Average"
+              >
+                {scoreViewMode === 'selected' ? 'Show Avg' : 'Show Selected'}
+              </button>
+            )}
           </div>
 
           <div
             className="hero-score-value"
-            style={{ color: scoreColor }}
+            style={{
+              color: getScoreColor(
+                scoreViewMode === 'selected' && selectedProject
+                  ? selectedProject.overall_score
+                  : analytics.averageScore
+              ),
+              transition: 'color 0.2s ease'
+            }}
           >
-            {analytics.averageScore}
+            {scoreViewMode === 'selected' && selectedProject
+              ? selectedProject.overall_score
+              : analytics.averageScore}
           </div>
 
-          <div className="hero-score-scale">
-            <span>Innovation Score</span>
-            <span>/ 100</span>
+          <div className="hero-score-scale" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '210px' }}>
+            <span>
+              {scoreViewMode === 'selected' && selectedProject
+                ? selectedProject.title
+                : 'Innovation Score / 100'}
+            </span>
           </div>
 
           <div className="hero-score-bar">
             <div
               style={{
                 width: `${Math.min(
-                  Math.max(analytics.averageScore, 0),
+                  Math.max(
+                    scoreViewMode === 'selected' && selectedProject
+                      ? selectedProject.overall_score
+                      : analytics.averageScore,
+                    0
+                  ),
                   100
                 )}%`,
-                background: scoreColor,
+                background: getScoreColor(
+                  scoreViewMode === 'selected' && selectedProject
+                    ? selectedProject.overall_score
+                    : analytics.averageScore
+                ),
+                transition: 'all 0.3s ease',
               }}
             />
           </div>
 
-          <span className="hero-score-rating">
-            {getScoreLabel(analytics.averageScore)}
-          </span>
-
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem' }}>
+            <span className="hero-score-rating">
+              {getScoreLabel(
+                scoreViewMode === 'selected' && selectedProject
+                  ? selectedProject.overall_score
+                  : analytics.averageScore
+              )}
+            </span>
+            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+              Portfolio Avg: <strong style={{ color: '#cbd5e1' }}>{analytics.portfolioAverage}</strong>
+            </span>
+          </div>
         </div>
 
       </section>
@@ -445,13 +529,15 @@ export default function InnovationManagerPage() {
 
               <div className="kpi-content">
                 <span className="kpi-label">
-                  Portfolio Average
+                  {selectedDomain === 'all' ? 'Portfolio Average' : `${selectedDomain} Avg`}
                 </span>
 
                 <strong>{analytics.averageScore}</strong>
 
                 <small>
-                  Overall innovation score
+                  {selectedDomain === 'all'
+                    ? 'Across all 25 innovations'
+                    : `${analytics.total} ${selectedDomain} projects`}
                 </small>
               </div>
 
@@ -547,11 +633,56 @@ export default function InnovationManagerPage() {
 
             </div>
 
+            {/* Domain Filter Chips */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: '0.25rem' }}>
+                Filter Domain:
+              </span>
+              {domains.map((domain) => {
+                const count = domain === 'all'
+                  ? projects.length
+                  : projects.filter((p) => p.domain?.toLowerCase() === domain.toLowerCase()).length;
+                const active = selectedDomain === domain;
+                return (
+                  <button
+                    key={domain}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDomain(domain);
+                      const matching = domain === 'all'
+                        ? projects
+                        : projects.filter((p) => p.domain?.toLowerCase() === domain.toLowerCase());
+                      if (matching.length > 0 && !matching.some((p) => p.project_id === selectedProjectId)) {
+                        setSelectedProjectId(matching[0].project_id);
+                        setScoreViewMode('selected');
+                      }
+                    }}
+                    style={{
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.78rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      border: active ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: active ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                      color: active ? '#38bdf8' : '#94a3b8',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {domain === 'all' ? 'All Domains' : domain} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="pipeline-card">
               <PipelineTracker
-                stages={pipeline?.stages || []}
-                grouped={pipeline?.grouped || {}}
-                onSelectProject={setSelectedProjectId}
+                stages={filteredPipeline?.stages || []}
+                grouped={filteredPipeline?.grouped || {}}
+                onSelectProject={(id) => {
+                  setSelectedProjectId(id);
+                  setScoreViewMode('selected');
+                }}
                 selectedProjectId={selectedProjectId}
               />
             </div>

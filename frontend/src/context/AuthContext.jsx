@@ -11,20 +11,41 @@ function buildUser(data) {
   };
 }
 
+// Clear any stored authentication state on reload so each page reload logs out as requested
+try {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+} catch (e) {
+  // Ignore in case storage access is restricted
+}
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
-  const [role, setRole] = useState(() => user?.role || null);
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setRole(user?.role || null);
   }, [user]);
+
+  // Ensure tokens are removed when window/tab is reloaded or closed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+      } catch (e) {}
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   const applySession = (data) => {
     localStorage.setItem("token", data.access_token);

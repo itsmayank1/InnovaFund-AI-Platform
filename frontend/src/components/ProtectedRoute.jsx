@@ -4,13 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
   
   if (loading) {
     return <LoadingSpinner />;
   }
   
-  if (!user && !localStorage.getItem('token')) {
+  if (!user || !token) {
     return <Navigate to="/login" replace />;
   }
   

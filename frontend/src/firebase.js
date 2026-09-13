@@ -21,104 +21,71 @@ export const githubProvider = new GithubAuthProvider();
 githubProvider.setCustomParameters({ prompt: 'consent' });
 
 export const loginWithGoogleFirebase = async () => {
-  return new Promise((resolve) => {
-    let settled = false;
-
-    // Timeout after 2.5 seconds if Google's popup hangs on Error 500
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        resolve({
-          success: false,
-          error: "Google OAuth consent server error (HTTP 500). Google Cloud Console OAuth consent is unconfigured for this project ID. Use 'Quick Demo Sign-In' below to test the portal."
-        });
-      }
-    }, 2500);
-
-    signInWithPopup(auth, googleProvider)
-      .then((result) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          const user = result.user;
-          resolve({
-            success: true,
-            email: user.email,
-            full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'Google User'),
-            photoURL: user.photoURL,
-            uid: user.uid
-          });
-        }
-      })
-      .catch((error) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          console.error('Firebase Google Auth error:', error);
-          let userFriendlyErr = 'Google OAuth failed (Error 500: Unconfigured Google Consent Screen / Client ID).';
-          if (error.code === 'auth/operation-not-allowed') {
-            userFriendlyErr = 'Google Provider is not enabled in Firebase Console (Authentication -> Sign-in method -> Google).';
-          } else if (error.code === 'auth/unauthorized-domain') {
-            userFriendlyErr = 'localhost is not added to Authorized Domains in Firebase Console Settings.';
-          } else if (error.code === 'auth/popup-closed-by-user') {
-            userFriendlyErr = 'Google Sign-In popup was closed before completing authentication.';
-          }
-          resolve({
-            success: false,
-            error: userFriendlyErr,
-            code: error.code
-          });
-        }
-      });
-  });
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    return {
+      success: true,
+      email: user.email,
+      full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'Google User'),
+      photoURL: user.photoURL,
+      uid: user.uid
+    };
+  } catch (error) {
+    console.error('Firebase Google Auth error:', error);
+    let userFriendlyErr = error.message || 'Google sign-in failed.';
+    if (error.code === 'auth/popup-blocked') {
+      userFriendlyErr = 'Google Sign-In popup was blocked by your browser. Please allow popups for this site in your address bar, or use Quick Demo Sign-In below.';
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      userFriendlyErr = 'Google Sign-In popup was closed before completing authentication.';
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      userFriendlyErr = 'Multiple popup requests detected. Please try again.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      userFriendlyErr = 'Google Provider is not enabled in Firebase Console.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      userFriendlyErr = 'This domain is not in the Firebase Authorized Domains list.';
+    } else if (error.code === 'auth/network-request-failed') {
+      userFriendlyErr = 'Network error: could not connect to Google authentication server.';
+    }
+    return {
+      success: false,
+      error: userFriendlyErr,
+      code: error.code
+    };
+  }
 };
 
 export const loginWithGithubFirebase = async () => {
-  return new Promise((resolve) => {
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        resolve({
-          success: false,
-          error: "GitHub OAuth popup timed out or unconfigured. Use 'Quick Demo Sign-In' below to test the portal."
-        });
-      }
-    }, 2500);
-
-    signInWithPopup(auth, githubProvider)
-      .then((result) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          const user = result.user;
-          resolve({
-            success: true,
-            email: user.email || 'user@innovafund.ai',
-            full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'GitHub User'),
-            photoURL: user.photoURL,
-            uid: user.uid
-          });
-        }
-      })
-      .catch((error) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timer);
-          console.error('Firebase GitHub Auth error:', error);
-          let userFriendlyErr = 'GitHub OAuth failed (Unconfigured GitHub Client ID/Secret in Firebase Console).';
-          if (error.code === 'auth/operation-not-allowed') {
-            userFriendlyErr = 'GitHub Provider is not enabled in Firebase Console.';
-          } else if (error.code === 'auth/popup-closed-by-user') {
-            userFriendlyErr = 'GitHub Sign-In popup was closed before completing authentication.';
-          }
-          resolve({
-            success: false,
-            error: userFriendlyErr,
-            code: error.code
-          });
-        }
-      });
-  });
+  try {
+    const result = await signInWithPopup(auth, githubProvider);
+    const user = result.user;
+    return {
+      success: true,
+      email: user.email || 'user@innovafund.ai',
+      full_name: user.displayName || (user.email ? user.email.split('@')[0] : 'GitHub User'),
+      photoURL: user.photoURL,
+      uid: user.uid
+    };
+  } catch (error) {
+    console.error('Firebase GitHub Auth error:', error);
+    let userFriendlyErr = error.message || 'GitHub sign-in failed.';
+    if (error.code === 'auth/popup-blocked') {
+      userFriendlyErr = 'GitHub Sign-In popup was blocked by your browser. Please allow popups for this site in your address bar, or use Quick Demo Sign-In below.';
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      userFriendlyErr = 'GitHub Sign-In popup was closed before completing authentication.';
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      userFriendlyErr = 'Multiple popup requests detected. Please try again.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      userFriendlyErr = 'GitHub Provider is not enabled in Firebase Console.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      userFriendlyErr = 'This domain is not in the Firebase Authorized Domains list.';
+    } else if (error.code === 'auth/network-request-failed') {
+      userFriendlyErr = 'Network error: could not connect to GitHub authentication server.';
+    }
+    return {
+      success: false,
+      error: userFriendlyErr,
+      code: error.code
+    };
+  }
 };

@@ -12,17 +12,11 @@ export default function DashboardPage() {
   const [isTechModalOpen, setIsTechModalOpen] = useState(false);
 
   
-  const currentUser = user || (() => {
-    const saved = localStorage.getItem('user');
-    if (saved) {
-      try { return JSON.parse(saved); } catch(e) {}
-    }
-    return {
-      full_name: 'Platform Innovator',
-      role: 'researcher',
-      email: 'user@innovafund.ai'
-    };
-  })();
+  const currentUser = user || {
+    full_name: 'Researcher',
+    role: 'researcher',
+    email: ''
+  };
 
 
   const getRoleStats = () => {
