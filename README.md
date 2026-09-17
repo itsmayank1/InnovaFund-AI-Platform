@@ -6,7 +6,7 @@ Mentor: Ms. Reshma Gollapalli
 > **Deliverable branch:** `final-integration` — this branch holds the complete,
 > integrated project. `main` is kept as a pointer README only.
 
----
+## Where the code is
 
 ## Overview
 
