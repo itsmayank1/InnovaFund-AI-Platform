@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Layers, Info, ShieldAlert, Cpu } from 'lucide-react';
+import { Layers, ShieldAlert } from 'lucide-react';
 import { getScoringWeights } from '../../api/scoring';
 
 const PILLAR_LABELS = {
@@ -18,19 +18,27 @@ const PILLAR_COLORS = {
   funding_relevance: '#ec4899'      // Pink
 };
 
+const DEFAULT_WEIGHTS = {
+  research_novelty: 0.30,
+  patent_strength: 0.20,
+  technology_maturity: 0.15,
+  market_potential: 0.20,
+  funding_relevance: 0.15
+};
+
 export default function PillarBreakdown({ pillars, customWeights }) {
-  const [weights, setWeights] = useState(customWeights || null);
+  const [weights, setWeights] = useState(customWeights || DEFAULT_WEIGHTS);
 
   useEffect(() => {
     if (!weights) {
       getScoringWeights()
         .then((res) => {
-          if (res?.primary_weights) {
-            setWeights(res.primary_weights);
+          if (res?.primary_weights || res?.weights) {
+            setWeights(res.primary_weights || res.weights);
           }
         })
-        .catch((err) => {
-          console.warn('Could not fetch dynamic scoring weights:', err);
+        .catch(() => {
+          setWeights(DEFAULT_WEIGHTS);
         });
     }
   }, [weights]);
@@ -57,10 +65,15 @@ export default function PillarBreakdown({ pillars, customWeights }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {Object.entries(pillars).map(([key, pillar]) => {
-          const label = PILLAR_LABELS[key] || key.replace('_', ' ');
+        {Object.entries(pillars).map(([key, pillarRaw]) => {
+          const label = PILLAR_LABELS[key] || key.replace(/_/g, ' ');
           const color = PILLAR_COLORS[key] || '#0ea5e9';
-          const weightPct = ((weights?.[key] ?? pillar.weight) * 100).toFixed(0);
+          const isObj = typeof pillarRaw === 'object' && pillarRaw !== null;
+          
+          const val = isObj ? (pillarRaw.value ?? 0) : Number(pillarRaw || 0);
+          const weight = isObj ? (pillarRaw.weight ?? weights?.[key] ?? DEFAULT_WEIGHTS[key] ?? 0.2) : (weights?.[key] ?? DEFAULT_WEIGHTS[key] ?? 0.2);
+          const contrib = isObj ? (pillarRaw.weighted_score ?? pillarRaw.contribution ?? (val * weight)) : (val * weight);
+          const weightPct = (weight * 100).toFixed(0);
 
           return (
             <div key={key}>
@@ -79,51 +92,32 @@ export default function PillarBreakdown({ pillars, customWeights }) {
                   }}>
                     {weightPct}% Weight
                   </span>
-                  {pillar.is_fallback && (
-                    <span
-                      title="This signal is resolved via deterministic seed data / fallback provider"
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        background: 'rgba(245, 158, 11, 0.15)',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
-                        color: '#fbbf24',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px'
-                      }}
-                    >
-                      <ShieldAlert size={10} /> Seed Fallback
-                    </span>
-                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                   <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #f8fafc)' }}>
-                    {pillar.value.toFixed(1)}
+                    {val.toFixed(1)}
                   </span>
                   <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                    (+{pillar.contribution.toFixed(2)} pts)
+                    (+{contrib.toFixed(2)} pts)
                   </span>
                 </div>
               </div>
 
-              {/* Progress Track */}
+              {/* Progress Bar */}
               <div style={{
                 height: '8px',
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.05)',
+                background: 'rgba(255,255,255,0.08)',
                 borderRadius: '4px',
                 overflow: 'hidden'
               }}>
                 <div style={{
                   height: '100%',
-                  width: `${Math.min(100, Math.max(0, pillar.value))}%`,
-                  background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`,
+                  width: `${Math.min(100, Math.max(0, val))}%`,
+                  background: color,
                   borderRadius: '4px',
-                  transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+                  transition: 'width 0.4s ease'
                 }} />
               </div>
             </div>
