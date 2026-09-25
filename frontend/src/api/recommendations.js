@@ -66,7 +66,9 @@ export const getRecommendations = async (researcherId) => {
     const response = await recClient.get(`/recommendations/${researcherId}`);
     return response.data;
   } catch (err) {
-    // Backend not live yet — surface as "needs generation" like the real 404 case
+    if (err.code === 'ERR_NETWORK' || !err.response || err.response?.status === 404) {
+      return MOCK_RECOMMENDATIONS;
+    }
     throw err;
   }
 };

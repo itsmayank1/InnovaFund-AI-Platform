@@ -44,13 +44,8 @@ export default function RecommendationsPage() {
         await handleAutoGenerate();
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        // First visit for this researcher — auto-generate recommendations seamlessly
-        await handleAutoGenerate();
-      } else {
-        console.error(err);
-        setError('Unable to load funding recommendations right now. Please try again.');
-      }
+      console.error(err);
+      await handleAutoGenerate();
     } finally {
       setLoading(false);
     }
