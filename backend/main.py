@@ -18,6 +18,7 @@ from routers import scoring_routes, commercialization_routes
 from routers import technology_routes
 from routers import trends_routes
 from routers import portfolio_routes
+from routers import recommendation_routes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -106,15 +107,20 @@ app.add_middleware(
 all_routers = [
     auth_routes.router,
     profile_routes.router,
+    profile_routes.profile_alias_router,
     dataset_routes.router,
+    dataset_routes.publications_alias_router,
+    dataset_routes.patents_alias_router,
     admin_routes.router,
     grant_matching_routes.router,
+    grant_matching_routes.funding_router,
     scoring_routes.router,
     commercialization_routes.router,
     patent_routes.router,
     technology_routes.router,
     trends_routes.router,
     portfolio_routes.router,
+    recommendation_routes.router,
 ]
 
 for prefix in set([settings.API_PREFIX, "/api", "/api/v1"]):
