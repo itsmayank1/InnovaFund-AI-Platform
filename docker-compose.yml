@@ -31,6 +31,15 @@ services:
       timeout: 5s
       retries: 5
 
+  scoring-service:
+    build:
+      context: ./innovation-scoring-service
+      dockerfile: Dockerfile
+    container_name: innovafund_scoring_service
+    restart: always
+    ports:
+      - "8001:8004"
+
   backend:
     build:
       context: ./backend
