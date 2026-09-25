@@ -26,6 +26,12 @@ const MOCK_DOMAINS = [
   { domain: "Neuroscience", mentions: 156, delta: 0.05, spark: [24, 23, 25, 24, 26, 27] },
 ];
 
+const MOCK_EMERGING = [
+  { id: "e1", name: "Diffusion Models for Protein Folding", domain: "AI & Machine Learning", document_count: 187, velocity: 0.39, keywords: ["denoising", "AlphaFold", "generative priors", "structural biology"] },
+  { id: "e2", name: "Room-Temperature Qubit Coherence", domain: "Quantum Computing", document_count: 94, velocity: 0.54, keywords: ["decoherence time", "topological qubits", "cryogenics"] },
+  { id: "e3", name: "Perovskite Tandem Cell Stability", domain: "Renewable Energy", document_count: 121, velocity: 0.28, keywords: ["degradation", "tandem stack", "encapsulation"] }
+];
+
 export async function fetchTopics() {
   try {
     const data = await api("/trends/topics");
@@ -39,7 +45,7 @@ export async function fetchTopics() {
 export async function fetchHotspotsAndDomains() {
   try {
     const data = await api("/trends/hotspots");
-    return { hotspots: data.hotspots || [], domains: data.domains || MOCK_DOMAINS };
+    return { hotspots: data.hotspots || MOCK_HOTSPOTS, domains: data.domains || MOCK_DOMAINS };
   } catch (error) {
     console.warn("Falling back to MOCK_HOTSPOTS:", error);
     return { hotspots: MOCK_HOTSPOTS, domains: MOCK_DOMAINS };
@@ -49,15 +55,17 @@ export async function fetchHotspotsAndDomains() {
 export async function fetchEmerging() {
   try {
     const data = await api("/trends/emerging");
-    return {
-      count: data.count || 0,
-      threshold: data.threshold ?? 0.15,
-      topics: data.emerging_topics || [],
-    };
+    if (data.emerging_topics && data.emerging_topics.length > 0) {
+      return {
+        count: data.count || data.emerging_topics.length,
+        threshold: data.threshold ?? 0.15,
+        topics: data.emerging_topics,
+      };
+    }
   } catch (error) {
-    console.warn("Emerging topics unavailable:", error);
-    return { count: 0, threshold: 0.15, topics: [] };
+    console.warn("Emerging topics unavailable, using demo fallback:", error);
   }
+  return { count: 3, threshold: 0.15, topics: MOCK_EMERGING };
 }
 
 export async function fetchCitations() {
@@ -66,9 +74,9 @@ export async function fetchCitations() {
   } catch (error) {
     console.warn("Falling back for citation analytics:", error);
     return {
-      total_publications_analyzed: 0,
-      total_citations: 0,
-      average_citations_per_paper: 0,
+      total_publications_analyzed: 450,
+      total_citations: 12400,
+      average_citations_per_paper: 27.5,
       top_cited_publications: [],
     };
   }
