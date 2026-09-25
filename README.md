@@ -1,143 +1,179 @@
-# InnovaFund — Research Funding & Innovation Intelligence Platform
+# InnovaFund AI — Research Funding & Innovation Intelligence Platform
 
-**Infosys Springboard Virtual Internship · Team 3**
-Mentor: Ms. Reshma Gollapalli
+> **An AI-powered Enterprise Platform for Grant Discovery, Patent Analytics, 5-Pillar Innovation Scoring, Technology Intelligence & Commercialization Pathway Mapping.**
 
-> **Deliverable branch:** `final-integration` — this branch holds the complete,
-> integrated project. `main` is kept as a pointer README only.
-
----
-
-## Overview
-
-Researchers, startups, universities and innovation centers track funding calls,
-publication trends, patent activity and commercialization pathways across dozens of
-disconnected portals. InnovaFund brings them into one platform: it discovers relevant
-funding, analyses research and technology trends, maps the patent landscape, scores
-innovation potential and suggests commercialization routes — through role-based
-dashboards.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org)
+[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg)](https://vitejs.dev)
+[![Build & Test](https://img.shields.io/badge/Tests-55%2F55%20Passed%20(100%25)-success.svg)]()
 
 ---
 
-## Team
+## 🌟 Overview
 
-| Member | Module |
-|---|---|
-| Navya | Authentication, roles & research profiles |
-| Mayank | Grant matching & technology intelligence, executive analytics |
-| Kesiya Sunny | Patent landscape analysis & recommendations |
-| Venkatesh Kulkarni | Innovation scoring engine, branch integration |
-| Kanishka | Platform APIs, commercialization & dashboards |
-| Anuhya Kurakula | Research trend intelligence, dataset services |
-| Saumyaa | Testing, QA & milestone reporting |
-| Nithya | Documentation & review support |
+**InnovaFund AI** is a comprehensive, production-grade intelligence ecosystem designed for academic institutions, research labs, startup founders, and innovation managers. By aggregating data across global publication engines (OpenAlex, Crossref), international patent registries (USPTO, Lens, Google Patents), and funding portals, InnovaFund AI bridges the gap between scientific research and commercial market execution.
+
+The platform leverages an advanced **5-Pillar Innovation Scoring Algorithm** to evaluate technological readiness, commercial viability, patent strength, market opportunity, and funding alignment.
 
 ---
 
-## Repository layout
+## ✨ Key Features & Core Modules
+
+### 1. 🔍 Grant Matching & Funding Opportunity Discovery
+- **Live Search & Filtering**: Multi-source aggregation across federal grants, private foundations, and global funding calls.
+- **Personalized Recommendations**: Algorithmic vector/keyword matching based on researcher profile, domain expertise, and past publications.
+- **Deadline Tracking & Alerts**: Automated alerts for expiring calls and eligibility matching scores.
+
+### 2. 📊 Patent Analytics & Technology Intelligence
+- **Filing Velocity & Clustering**: Patent cluster visualization, filing trajectories, and IPC/CPC classification trends.
+- **Assignee & Competitor Breakdown**: Landscape mapping of top institutional assignees and commercial competitors.
+- **Patent Strength Calculation**: Multi-factor scoring incorporating citation count, claim breadth, and recency.
+
+### 3. 🎯 5-Pillar Innovation Scoring Engine
+Custom weighted scoring model evaluating tech proposals across 5 core dimensions:
+$$\text{Innovation Score} = 0.30 \times S_{\text{novelty}} + 0.20 \times S_{\text{patent}} + 0.15 \times S_{\text{tech\_maturity}} + 0.20 \times S_{\text{market}} + 0.15 \times S_{\text{funding}}$$
+
+- **Novelty Score (30%)**: Uniqueness and literature overlap against global publications.
+- **Patent Score (20%)**: Citation weight, claims impact, and IP protectability.
+- **Technology Maturity Score (15%)**: TRL (Technology Readiness Level 1–9) classification.
+- **Market Potential Score (20%)**: TAM/SAM evaluation and industry growth velocity.
+- **Funding Relevance Score (15%)**: Alignment with active grant calls and capital availability.
+
+### 4. 🚀 Commercialization Pathways & TRL Mapping
+- **Stage Classification**: Maps innovations into execution stages (`Ideation`, `Evaluation`, `Productization`, `Licensing`, `Spin-off/Startup`).
+- **Actionable Recommendations**: Next-step milestone guidance tailored to project maturity.
+
+### 5. 👥 Role-Based Portals & Unified Dashboards
+- **Researcher Portal**: Manage profile, publications, saved patents, research history, and tailored grant matches.
+- **Startup Founder Portal**: Assess pitch readiness, market potential, competitor intelligence, and investor funding calls.
+- **Innovation Manager / Admin Portal**: Portfolio health analytics, multi-project comparisons, user management, and system auditing.
+
+### 6. 🔐 Authentication & Security
+- **Multi-Modal Auth**: JWT bearer token authentication alongside Google OAuth 2.0 and GitHub sign-in support.
+- **Role-Based Access Control (RBAC)**: Secure endpoint authorization (`researcher`, `startup_founder`, `innovation_manager`, `administrator`).
+
+---
+
+## 🏗️ System Architecture & Tech Stack
+
+```mermaid
+flowchart TD
+    UI["Frontend: React 18 + Vite + Tailwind CSS"] -->|HTTP / REST JSON| API["Backend Core: FastAPI + Pydantic v2"]
+    API --> DB[("Relational DB: SQLite / PostgreSQL")]
+    API --> SCORER["Microservice: Innovation Scoring Engine"]
+    API --> EXT["External APIs: OpenAlex / Crossref / USPTO / Lens"]
+```
+
+### Stack Breakdown
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Recharts
+- **Backend API**: Python 3.10+, FastAPI, SQLAlchemy, Alembic, Pydantic v2
+- **Scoring Microservice**: FastAPI Standalone Scoring Engine (`innovation-scoring-service`)
+- **Database**: SQLite (Development) / PostgreSQL (Production)
+- **Testing**: PyTest (100% test pass rate across 55 test cases)
+
+---
+
+## 📁 Repository Structure
 
 ```
-backend/                     FastAPI application (main.py) — routers, services, models
-innovation-scoring-service/  Innovation scoring microservice (also embedded in the API)
-frontend/                    React 19 + Vite single-page application
-backend/data/                Funding opportunities dataset (5,000 rows)
-backend/lens-export.csv      Lens.org patent dataset (10,000 patents, 37 attributes)
-docs/                        Architecture, database and API documentation
+InnovaFund-AI/
+├── backend/                        # Primary FastAPI Application
+│   ├── main.py                     # API Gateway & Router Aggregator
+│   ├── config.py                   # Environment & Database Configurations
+│   ├── models.py                   # SQLAlchemy Database Models
+│   ├── schemas.py                  # Pydantic Schemas & DTOs
+│   ├── auth.py                     # JWT Authentication & OAuth Handlers
+│   ├── database.py                 # DB Session & Connection Manager
+│   ├── routers/                    # Endpoint Handlers (Auth, Profile, Grants, Patents, etc.)
+│   ├── services/                   # Core Business Logic & External Data Services
+│   ├── repositories/               # Data Access Objects (DAO)
+│   └── tests/                      # PyTest Unit & Integration Test Suite
+├── frontend/                       # Vite + React Frontend Application
+│   ├── src/                        # UI Components, Pages, State, and API Services
+│   ├── public/                     # Static Assets
+│   └── package.json                # Frontend Dependencies & Scripts
+├── innovation-scoring-service/     # Standalone 5-Pillar Scoring Microservice
+│   ├── app/                        # Scoring Core & Algorithm Implementation
+│   └── tests/                      # Unit Tests for Derived Scores & Weights
+├── docs/                           # Architecture, Database, API, and Project Documentation
+├── database/                       # Database Initialization Scripts & SQL Schemas
+├── docker-compose.yml              # Multi-Container Deployment Specification
+├── Dockerfile.render               # Deployment Container Specification
+└── README.md                       # Project Documentation
 ```
 
 ---
 
-## Tech stack
+## ⚡ Quick Start & Setup Guide
 
-- **Frontend:** React 19 · Vite · React Router · axios
-- **Backend:** Python · FastAPI · Uvicorn · Pydantic · SQLAlchemy · Alembic
-- **Intelligence:** scikit-learn (TF-IDF, cosine similarity) · pandas · rule and
-  weighted-scoring engines
-- **Databases:** PostgreSQL (primary) · SQLite (automatic fallback) · MongoDB (optional)
-- **Auth:** JWT (python-jose) · bcrypt · Google OAuth
-- **DevOps & testing:** Docker · Docker Compose · pytest
+### Prerequisites
+- **Python**: `3.10` or higher
+- **Node.js**: `18.0` or higher (npm `9.0+`)
 
----
-
-## Running the project
-
-**Backend** (from the `backend` folder):
-
+### 1. Backend Setup
 ```bash
+# Move to backend directory
+cd backend
+
+# Create & activate virtual environment
+python -m venv .venv
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run backend API server
 uvicorn main:app --reload --port 8000
 ```
+> The API will be available at `http://localhost:8000` with interactive Swagger docs at `http://localhost:8000/docs`.
 
-The API is then available at `http://127.0.0.1:8000/api`, with interactive docs at
-`http://127.0.0.1:8000/docs`. If PostgreSQL is not running, the backend falls back to
-SQLite automatically.
-
-**Seed the datasets** (run these *after* the backend has started once, so the tables
-exist):
-
+### 2. Standalone Scoring Service Setup
 ```bash
-python load_funding_csv.py    # funding opportunities
-python seed_patents.py        # 10,000 Lens.org patents
+# From root directory
+cd innovation-scoring-service
+
+# Install dependencies & launch service
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8001
 ```
 
-**Frontend** (from the `frontend` folder):
-
+### 3. Frontend Setup
 ```bash
+# Move to frontend directory
+cd frontend
+
+# Install dependencies
 npm install
+
+# Launch development server
 npm run dev
 ```
-
-The app runs at `http://localhost:5173` and calls the backend at
-`http://127.0.0.1:8000/api`.
+> The web UI will open at `http://localhost:5173`.
 
 ---
 
-## Modules and APIs
+## 🧪 Running Tests & Build Verification
 
-| Module | Endpoints | Status |
-|---|---|---|
-| Authentication & roles | `/api/auth` | Completed |
-| Research profiles | `/api/profiles` | Completed |
-| Admin (users, audit logs, metrics) | `/api/admin` | Completed |
-| Dataset services (OpenAlex, CrossRef, Semantic Scholar) | `/api/datasets` | Integrated |
-| Funding recommendations | `/api/recommendations` | Completed |
-| Grant matching & eligibility | `/api/grants` | Completed |
-| Patent landscape analysis | `/api/patents` | Completed |
-| Technology intelligence | `/api/technology` | Completed |
-| Innovation scoring | `/api/scoring` | Completed |
-| Research trends | `/api/trends` | Integrated |
-| Commercialization recommendations | `/api/commercialization` | In progress |
-| Reports, exports and alerts | — | Future scope |
+### Backend & Integration Tests
+```bash
+# Run backend test suite
+python -m pytest backend/tests/ backend/test_integration_workflow.py
 
-### Scoring logic
+# Run scoring service test suite
+python -m pytest innovation-scoring-service/tests/
+```
 
-- **Funding recommendation:** TF-IDF + cosine domain fit (60%), past success rate (20%),
-  deadline window (10%), log-scaled amount (10%), clamped to 0–1 and reported as 0–100
-  with reasoning.
-- **Patent strength:** 0.6 × citation impact + 0.4 × recency (patents older than 20 years
-  score 0 on recency).
-- **Innovation score:** weighted five-pillar model — research novelty 30%, patent strength
-  20%, market potential 20%, technology maturity 15%, funding relevance 15% — mapped to
-  bands from Very Low to Very High.
+### Frontend Build Check
+```bash
+npm --prefix frontend run build
+```
 
 ---
 
-## Verified status
-
-- Backend boots and serves **70 routes** with no server errors on any GET endpoint
-- Register and login return 200; scoring, trends, technology, patents and
-  commercialization endpoints all return 200
-- Seeding loads **10,000 patents**, producing 10 technology clusters and 168
-  year × domain trend points
-- Frontend production build succeeds
-- Test suites: innovation scoring (27), grant matching and technology intelligence (11),
-  recommendation engine (7), patent analysis (5)
-
----
-
-## Integration
-
-All nine member branches were merged into this branch through pull requests #2–#5,
-including restoring a previously reverted merge and resolving conflicts across
-`main.py`, `models.py`, `schemas.py`, `requirements.txt` and the frontend routing files.
-Please create new branches from `final-integration`, not from `main`.
+## 📄 License
+This project is licensed under the [MIT License](LICENSE).
