@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { HiSparkles, HiX, HiPaperAirplane, HiLightningBolt, HiBookOpen, HiLightBulb, HiCurrencyDollar } from 'react-icons/hi';
+import { HiSparkles, HiX, HiPaperAirplane, HiLightningBolt, HiBookOpen, HiLightBulb, HiCurrencyDollar, HiArrowRight } from 'react-icons/hi';
+import { useNavigate } from 'react-router-dom';
 
 export default function AIAssistantDrawer() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -29,21 +31,30 @@ export default function AIAssistantDrawer() {
 
     setTimeout(() => {
       let reply = "I analyzed your query across our OpenAlex, CrossRef, and USPTO datasets.";
+      let actionPath = null;
+      let actionLabel = null;
+
       const lower = textToSend.toLowerCase();
 
       if (lower.includes('grant') || lower.includes('fund') || lower.includes('ai')) {
-        reply = "🎯 Top Matched Grants Found:\n• National DeepTech Innovation Grant 2026 ($500,000) — Deadline Aug 30, 2026\n• EIC Horizon AI Accelerator (€1,200,000) — Deadline Sep 15, 2026\nWould you like me to pre-fill your proposal profile?";
+        reply = "🎯 Top Matched Grants Found:\n• National DeepTech Innovation Grant 2026 ($500,000) — Deadline Aug 30, 2026\n• EIC Horizon AI Accelerator (€1,200,000) — Deadline Sep 15, 2026\n\nClick below to view full AI funding matches!";
+        actionPath = '/recommendations';
+        actionLabel = 'Explore Grant Matches';
       } else if (lower.includes('patent') || lower.includes('quantum')) {
         reply = "💡 Patent Landscape Insight:\nFound 140M+ cataloged patents. Quantum computing hardware patents are up +34% YoY with top assignees: IBM, Google IP, and MIT Tech Transfer.";
+        actionPath = '/patents';
+        actionLabel = 'View Patent Landscape';
       } else if (lower.includes('export') || lower.includes('publication')) {
-        reply = "📄 Export Guidance:\nYou can use the CSV / JSON export controls on the Publications Page (/publications) to download all citation records.";
+        reply = "📄 Publication Dataset Guidance:\nYou can search paper titles, authors, DOIs, and export publication references directly as CSV on the Publications Page.";
+        actionPath = '/publications';
+        actionLabel = 'Open Publication Search';
       } else {
         reply = `✨ Intelligence Insights for "${textToSend}":\nCross-referenced 6 connected dataset APIs (OpenAlex, CrossRef, Semantic Scholar, USPTO, Google Patents, The Lens). High commercial readiness detected!`;
       }
 
-      setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+      setMessages(prev => [...prev, { sender: 'ai', text: reply, actionPath, actionLabel }]);
       setThinking(false);
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -85,8 +96,8 @@ export default function AIAssistantDrawer() {
             bottom: '5.5rem',
             right: '2rem',
             zIndex: 1001,
-            width: '380px',
-            maxHeight: '520px',
+            width: '390px',
+            maxHeight: '540px',
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8)',
@@ -130,7 +141,7 @@ export default function AIAssistantDrawer() {
                 key={idx}
                 style={{
                   alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '85%',
+                  maxWidth: '88%',
                   padding: '0.75rem 1rem',
                   borderRadius: '1rem',
                   fontSize: '0.85rem',
@@ -142,6 +153,28 @@ export default function AIAssistantDrawer() {
                 }}
               >
                 {m.text}
+
+                {m.actionPath && (
+                  <button
+                    onClick={() => { navigate(m.actionPath); setIsOpen(false); }}
+                    style={{
+                      marginTop: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: 'rgba(14, 165, 233, 0.2)',
+                      border: '1px solid rgba(14, 165, 233, 0.4)',
+                      color: '#38bdf8',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {m.actionLabel} <HiArrowRight />
+                  </button>
+                )}
               </div>
             ))}
             {thinking && (
