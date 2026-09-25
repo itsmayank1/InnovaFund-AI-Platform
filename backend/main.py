@@ -108,6 +108,7 @@ all_routers = [
     auth_routes.router,
     profile_routes.router,
     profile_routes.profile_alias_router,
+    profile_routes.users_alias_router,
     dataset_routes.router,
     dataset_routes.publications_alias_router,
     dataset_routes.patents_alias_router,
@@ -123,7 +124,7 @@ all_routers = [
     recommendation_routes.router,
 ]
 
-for prefix in set([settings.API_PREFIX, "/api", "/api/v1"]):
+for prefix in set([settings.API_PREFIX, "/api", "/api/v1", ""]):
     for router in all_routers:
         app.include_router(router, prefix=prefix)
 

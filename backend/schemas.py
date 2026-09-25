@@ -160,6 +160,10 @@ class EligibilityMatchResult(BaseModel):
     criteria_breakdown: List[CriteriaMatchDetail]
     rejection_reasons: List[str] = []
 
+    @property
+    def overall_match_score(self) -> float:
+        return self.overall_eligibility_score
+
 
 class GrantMatchResponse(BaseModel):
     total_evaluated: int

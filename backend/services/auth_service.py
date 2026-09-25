@@ -22,8 +22,6 @@ class AuthService:
             )
         
         user = self.user_repo.create(user_in)
-        # Auto-create empty profile
-        self.profile_repo.get_or_create(user.id)
         
         self.audit_repo.log_action(
             user_id=user.id,

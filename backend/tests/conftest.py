@@ -42,4 +42,7 @@ def register(client,email='researcher@example.com',password='StrongPass123!'):
     return client.post('/api/v1/auth/register',json={'email':email,'full_name':'Test User','password':password})
 
 def login(client,email='researcher@example.com',password='StrongPass123!'):
+    r = client.post('/api/v1/auth/login',json={'email':email,'password':password})
+    if r.status_code == 200:
+        return r
     return client.post('/api/v1/auth/login',data={'username':email,'password':password})

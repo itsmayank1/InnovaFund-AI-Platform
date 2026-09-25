@@ -28,14 +28,16 @@ def test_full_researcher_journey(client):
 
     r_pub_search = client.get('/api/v1/publications/search?q=machine+learning', headers=headers)
     assert r_pub_search.status_code == 200
-    pubs = r_pub_search.json().get('results', r_pub_search.json())
+    pub_json = r_pub_search.json()
+    pubs = pub_json.get('results', pub_json) if isinstance(pub_json, dict) else pub_json
     assert len(pubs) >= 1
     r_pub_save = client.post('/api/v1/profile/publications', headers=headers, json=pubs[0])
     assert r_pub_save.status_code == 201
 
     r_pat_search = client.get('/api/v1/patents/search?q=intelligence', headers=headers)
     assert r_pat_search.status_code == 200
-    patents = r_pat_search.json().get('results', r_pat_search.json())
+    pat_json = r_pat_search.json()
+    patents = pat_json.get('results', pat_json) if isinstance(pat_json, dict) else pat_json
     assert len(patents) >= 1
     r_pat_save = client.post('/api/v1/profile/patents', headers=headers, json=patents[0])
     assert r_pat_save.status_code == 201

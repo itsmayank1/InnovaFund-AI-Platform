@@ -56,12 +56,16 @@ def match_grants(
     ]
 
     results.sort(key=lambda r: r.overall_match_score, reverse=True)
-    eligible_count = sum(1 for r in results if r.is_eligible)
+    total_eligible = sum(1 for r in results if r.eligibility_status == "ELIGIBLE")
+    total_partial = sum(1 for r in results if r.eligibility_status == "PARTIAL_MATCH")
+    total_ineligible = sum(1 for r in results if r.eligibility_status in ("INELIGIBLE", "EXPIRED"))
 
     return GrantMatchResponse(
         total_evaluated=len(opportunities),
-        eligible_matches_count=eligible_count,
-        matches=results
+        total_eligible=total_eligible,
+        total_partial=total_partial,
+        total_ineligible=total_ineligible,
+        matched_grants=results
     )
 
 @router.get("/matching-rules", response_model=MatchingRulesConfig, summary="Get Grant Matching Rules Config (Member 2)")
