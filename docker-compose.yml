@@ -52,12 +52,15 @@ services:
       - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/innovafund_db
       - MONGO_URL=mongodb://mongodb:27017
       - MONGO_DB_NAME=innovafund_db
+      - SCORING_SERVICE_URL=http://scoring-service:8004
       - SECRET_KEY=super-secret-key-change-in-production-innovafund-2026
     depends_on:
       postgres:
         condition: service_healthy
       mongodb:
         condition: service_healthy
+      scoring-service:
+        condition: service_started
 
   frontend:
     build:
