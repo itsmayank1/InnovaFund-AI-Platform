@@ -401,29 +401,44 @@ export async function getInnovationPortfolio() {
     };
   }
 
-  // Member 4 portfolio API: every project is scored live by the weighted
-  // five-pillar engine (GET /api/portfolio).
-  const response = await client.get('/portfolio');
-  const data = response.data || {};
+  try {
+    const response = await client.get('/portfolio');
+    const data = response.data || {};
 
-  const projects = (data.projects || []).map((project) => ({
-    project_id: project.project_id,
-    title: project.title,
-    domain: project.domain,
-    stage: project.stage,
-    overall_score: Number(project.overall_score || 0),
-    band: project.band,
-    trl: project.trl,
-    components: project.components || {},
-    raw: project,
-  }));
+    const projects = (data.projects || []).map((project) => ({
+      project_id: project.project_id,
+      title: project.title,
+      domain: project.domain,
+      stage: project.stage,
+      overall_score: Number(project.overall_score || 0),
+      band: project.band,
+      trl: project.trl,
+      components: project.components || {},
+      raw: project,
+    }));
+
+    if (projects.length > 0) {
+      return {
+        weights: data.weights || SCORE_WEIGHTS,
+        projects,
+        portfolio_average: Number(data.portfolio_average || 0),
+        high_potential_count: Number(data.high_potential_count || 0),
+        commercialization_ready_count: Number(data.commercialization_ready_count || 0),
+      };
+    }
+  } catch (err) {
+    console.warn('Backend portfolio endpoint unavailable, using fallback:', err);
+  }
 
   return {
-    weights: data.weights || SCORE_WEIGHTS,
-    projects,
-    portfolio_average: Number(data.portfolio_average || 0),
-    high_potential_count: Number(data.high_potential_count || 0),
-    commercialization_ready_count: Number(data.commercialization_ready_count || 0),
+    weights: SCORE_WEIGHTS,
+    projects: MOCK_PORTFOLIO,
+    portfolio_average: Math.round(
+      MOCK_PORTFOLIO.reduce(
+        (sum, project) => sum + project.overall_score,
+        0
+      ) / MOCK_PORTFOLIO.length
+    ),
   };
 }
 
@@ -449,25 +464,38 @@ export async function getInnovationPipeline() {
     };
   }
 
-  // Member 4 pipeline API: the scored portfolio grouped by commercialization
-  // stage (GET /api/portfolio/pipeline).
-  const [pipelineResponse, portfolio] = await Promise.all([
-    client.get('/portfolio/pipeline'),
-    getInnovationPortfolio(),
-  ]);
+  try {
+    const [pipelineResponse, portfolio] = await Promise.all([
+      client.get('/portfolio/pipeline'),
+      getInnovationPortfolio(),
+    ]);
 
-  const data = pipelineResponse.data || {};
-  const stages = data.stages || PIPELINE_STAGES;
-  const byId = new Map(portfolio.projects.map((p) => [p.project_id, p]));
+    const data = pipelineResponse.data || {};
+    const stages = data.stages || PIPELINE_STAGES;
+    const byId = new Map(portfolio.projects.map((p) => [p.project_id, p]));
 
-  const grouped = stages.reduce((acc, stage) => {
-    acc[stage] = (data.grouped?.[stage] || []).map(
-      (project) => byId.get(project.project_id) || project
-    );
-    return acc;
-  }, {});
+    const grouped = stages.reduce((acc, stage) => {
+      acc[stage] = (data.grouped?.[stage] || []).map(
+        (project) => byId.get(project.project_id) || project
+      );
+      return acc;
+    }, {});
 
-  return { stages, grouped, counts: data.counts || {} };
+    return { stages, grouped, counts: data.counts || {} };
+  } catch (err) {
+    console.warn('Backend pipeline endpoint unavailable, using fallback:', err);
+    const grouped = PIPELINE_STAGES.reduce((acc, stage) => {
+      acc[stage] = MOCK_PORTFOLIO.filter(
+        (project) => project.stage === stage
+      );
+      return acc;
+    }, {});
+
+    return {
+      stages: PIPELINE_STAGES,
+      grouped,
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -627,15 +655,24 @@ export async function getCommercializationRecommendations(projectId) {
     };
   }
 
-  // Member 5's endpoint keys on a numeric project id; catalogue ids look like
-  // "PRJ-007", so take the trailing number.
-  const numericId = Number(String(projectId).replace(/\D/g, '')) || 1;
+  try {
+    const numericId = Number(String(projectId).replace(/\D/g, '')) || 1;
 
-  const response = await client.get(
-    `/commercialization/recommendations/${numericId}`
-  );
+    const response = await client.get(
+      `/commercialization/recommendations/${numericId}`
+    );
 
-  return normalizeCommercializationResponse(response.data, projectId);
+    if (response.data) {
+      return normalizeCommercializationResponse(response.data, projectId);
+    }
+  } catch (err) {
+    console.warn('Backend commercialization endpoint unavailable, using fallback:', err);
+  }
+
+  return {
+    project_id: projectId,
+    recommendations: MOCK_RECOMMENDATIONS[projectId] || [],
+  };
 }
 
 // ---------------------------------------------------------------------------
