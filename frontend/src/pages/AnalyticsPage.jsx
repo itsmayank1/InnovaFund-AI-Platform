@@ -17,7 +17,42 @@ export default function AnalyticsPage() {
 
   const handleExport = () => {
     setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
+
+    const reportData = [
+      ['INNOVAFUND AI — EXECUTIVE ANALYTICS & INTELLIGENCE SUMMARY REPORT'],
+      ['Generated At', new Date().toISOString()],
+      ['Time Horizon Filter', timeRange],
+      [''],
+      ['1. KEY TELEMETRY METRICS'],
+      ['Metric', 'Value', 'Benchmark / Note'],
+      ['Global Indexed Capital', '$15.2 Billion', '+14.8% vs last fiscal quarter'],
+      ['AI Commercialization Rate', '84.6%', 'High commercial viability threshold'],
+      ['Global Patents Mapped', '142 Million+', 'USPTO, WIPO & Google Patents'],
+      ['Indexed Research Papers', '250 Million+', 'OpenAlex, CrossRef & Semantic Scholar'],
+      [''],
+      ['2. FUNDING ALLOCATION BY SECTOR'],
+      ['Research Sector', 'Capital Share', 'Active Grants', 'Total Funding'],
+      ...domainBreakdown.map(d => [d.name, d.val, d.count, d.amount]),
+      [''],
+      ['3. TOP PERFORMING INSTITUTIONS'],
+      ['Institution Name', 'Active Grants', 'Win Rate', 'Total Funding'],
+      ...topInstitutions.map(i => [i.name, i.grants, i.winRate, i.funding]),
+      [''],
+      ['4. PATENT WHITE-SPACE OPPORTUNITIES'],
+      ['Technology Sector', 'Indexed Patents', 'Opportunity Score', 'Market Status'],
+      ...patentWhiteSpaces.map(p => [p.sector, p.patentsCount, p.whitespaceScore, p.status])
+    ];
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + reportData.map(e => e.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `InnovaFund_Executive_Summary_${timeRange}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => setDownloadSuccess(false), 3500);
   };
 
   const domainBreakdown = [
