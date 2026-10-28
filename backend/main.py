@@ -1,31 +1,62 @@
+import logging
 import os
 import sys
-import logging
+from contextlib import asynccontextmanager
 
 # Ensure backend directory is in python sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from config import settings
-from database import engine, SessionLocal, get_mongo_db
-from models import Base, Role, User, Organization
 from auth import hash_password
-from routers import auth_routes, profile_routes, dataset_routes, admin_routes, grant_matching_routes, patent_routes
-from routers import scoring_routes, commercialization_routes
-from routers import technology_routes
-from routers import trends_routes
-from routers import portfolio_routes
-from routers import recommendation_routes
+from config import settings
+from database import SessionLocal, engine, get_db, get_mongo_db
+from dependencies import get_current_user
+from models import (
+    Base,
+    FundingOpportunity,
+    Recommendation,
+    ResearchInterest,
+    ResearchProfile,
+    Role,
+    User,
+)
+from recommendation_engine import (
+    build_profile_text,
+    compute_score,
+    get_opportunity_amount,
+)
+from routers import (
+    admin_routes,
+    auth_routes,
+    commercialization_routes,
+    dataset_routes,
+    grant_matching_routes,
+    patent_routes,
+    portfolio_routes,
+    profile_routes,
+    recommendation_routes,
+    scoring_routes,
+    technology_routes,
+    trends_routes,
+)
+from schemas import (
+    GenerateRecommendationsRequest,
+    GrantMatchRequest,
+    ProfileResponse as ResearchProfileResponse,
+    RecommendationOut,
+)
+from services.grant_matching_service import GrantMatchingRulesEngine
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create PostgreSQL database tables automatically
 Base.metadata.create_all(bind=engine)
 
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,7 +67,7 @@ async def lifespan(app: FastAPI):
             ("researcher", "Academic & Industry Scientists"),
             ("startup_founder", "Tech Entrepreneurs & DeepTech Founders"),
             ("innovation_manager", "University Tech Transfer & R&D Directors"),
-            ("administrator", "Platform IT Administrators")
+            ("administrator", "Platform IT Administrators"),
         ]
 
         for role_name, desc in roles:
@@ -45,9 +76,11 @@ async def lifespan(app: FastAPI):
                 db.add(Role(name=role_name, description=desc))
 
         # Seed default admin account
-        admin = db.query(User).filter(
-            User.email == "admin@researchsphere.ai"
-        ).first()
+        admin = (
+            db.query(User)
+            .filter(User.email == "admin@researchsphere.ai")
+            .first()
+        )
 
         if not admin:
             admin = User(
@@ -55,21 +88,25 @@ async def lifespan(app: FastAPI):
                 email="admin@researchsphere.ai",
                 password_hash=hash_password("Admin@123456"),
                 role="administrator",
-                is_active=True
+                is_active=True,
             )
             db.add(admin)
 
         db.commit()
 
         # Seed funding opportunities if empty
-        from routers.grant_matching_routes import seed_funding_opportunities_if_empty
+        from routers.grant_matching_routes import (
+            seed_funding_opportunities_if_empty,
+        )
+
         seed_funding_opportunities_if_empty(db)
 
-    except Exception as e:
-        logger.warning(f"Startup DB seed exception: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Startup DB seed exception: {e!s}")
     finally:
         db.close()
     yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -124,7 +161,7 @@ all_routers = [
     recommendation_routes.router,
 ]
 
-for prefix in set([settings.API_PREFIX, "/api", "/api/v1", ""]):
+for prefix in {settings.API_PREFIX, "/api", "/api/v1", ""}:
     for router in all_routers:
         app.include_router(router, prefix=prefix)
 
@@ -135,7 +172,7 @@ def read_root():
         "status": "online",
         "platform": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "docs_url": "/docs"
+        "docs_url": "/docs",
     }
 
 
@@ -144,7 +181,7 @@ def health_check():
     health = {
         "status": "ok",
         "postgres": "disconnected",
-        "mongodb": "disconnected"
+        "mongodb": "disconnected",
     }
 
     try:
@@ -153,8 +190,8 @@ def health_check():
         db.close()
         health["postgres"] = "connected"
 
-    except Exception as e:
-        health["postgres"] = f"error: {str(e)}"
+    except Exception as e:  # noqa: BLE001
+        health["postgres"] = f"error: {e!s}"
 
     mongo = get_mongo_db()
 
@@ -163,119 +200,86 @@ def health_check():
             mongo.command("ping")
             health["mongodb"] = "connected"
 
-        except Exception as e:
-            health["mongodb"] = f"error: {str(e)}"
+        except Exception as e:  # noqa: BLE001
+            health["mongodb"] = f"error: {e!s}"
 
     return health
 
 
 # --- ADDED BY MEMBER 1 (Milestone 2) ---
 
-from fastapi import Depends, HTTPException
-from sqlalchemy.orm import Session
-
-from database import get_db
-
-from models import (
-    ResearchProfile,
-    Recommendation,
-    FundingOpportunity,
-    ResearchInterest
-)
-
-from schemas import (
-    RecommendationOut,
-    GenerateRecommendationsRequest,
-    ProfileResponse as ResearchProfileResponse,
-    GrantMatchRequest
-)
-
-from recommendation_engine import (
-    compute_score,
-    build_profile_text,
-    get_opportunity_amount
-)
-
-from dependencies import get_current_user
-
-from services.grant_matching_service import GrantMatchingRulesEngine
-
 
 @app.delete("/profile")
 def delete_profile(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),  # noqa: B008
+    current_user: User = Depends(get_current_user),  # noqa: B008
 ):
-    profile = db.query(ResearchProfile).filter(
-        ResearchProfile.user_id == current_user.id
-    ).first()
+    profile = (
+        db.query(ResearchProfile)
+        .filter(ResearchProfile.user_id == current_user.id)
+        .first()
+    )
 
     if not profile:
         raise HTTPException(
-            status_code=404,
-            detail="Research profile not found."
+            status_code=404, detail="Research profile not found."
         )
 
     db.delete(profile)
     db.commit()
 
-    return {
-        "message": "Research profile deleted successfully."
-    }
+    return {"message": "Research profile deleted successfully."}
 
 
-@app.get(
-    "/profiles",
-    response_model=list[ResearchProfileResponse]
-)
+@app.get("/profiles", response_model=list[ResearchProfileResponse])
 def list_profiles(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ):
     return db.query(ResearchProfile).all()
 
 
-@app.get(
-    "/profiles/domain/{domain}",
-    response_model=list[ResearchProfileResponse]
-)
+@app.get("/profiles/domain/{domain}", response_model=list[ResearchProfileResponse])
 def search_by_domain(
     domain: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ):
-    profiles = db.query(ResearchProfile).filter(
-        ResearchProfile.research_domains.ilike(f"%{domain}%")
-    ).all()
+    profiles = (
+        db.query(ResearchProfile)
+        .filter(ResearchProfile.research_domains.ilike(f"%{domain}%"))
+        .all()
+    )
 
     return profiles
 
 
 @app.get(
-    "/profiles/keyword/{keyword}",
-    response_model=list[ResearchProfileResponse]
+    "/profiles/keyword/{keyword}", response_model=list[ResearchProfileResponse]
 )
 def search_by_keyword(
     keyword: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ):
-    profiles = db.query(ResearchProfile).filter(
-        ResearchProfile.keywords.ilike(f"%{keyword}%")
-    ).all()
+    profiles = (
+        db.query(ResearchProfile)
+        .filter(ResearchProfile.keywords.ilike(f"%{keyword}%"))
+        .all()
+    )
 
     return profiles
 
 
 @app.post(
-    "/recommendations/generate",
-    response_model=list[RecommendationOut]
+    "/recommendations/generate", response_model=list[RecommendationOut]
 )
 def generate_recommendations(
     req: GenerateRecommendationsRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),  # noqa: B008
 ):
-
-    profile = db.query(ResearchProfile).filter(
-        ResearchProfile.user_id == req.researcher_id
-    ).first()
+    profile = (
+        db.query(ResearchProfile)
+        .filter(ResearchProfile.user_id == req.researcher_id)
+        .first()
+    )
 
     if not profile:
         # A user who has never opened the Research Profile page has no profile
@@ -283,10 +287,7 @@ def generate_recommendations(
         # can run; the user refines it on the Research Profile page.
         user = db.query(User).filter(User.id == req.researcher_id).first()
         if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="Researcher not found"
-            )
+            raise HTTPException(status_code=404, detail="Researcher not found")
 
         profile = ResearchProfile(
             user_id=req.researcher_id,
@@ -306,26 +307,16 @@ def generate_recommendations(
             detail=(
                 "No funding opportunities in the database. "
                 "Load them with: python load_funding_csv.py"
-            )
+            ),
         )
 
     profile_text = build_profile_text(profile)
 
-    amounts = [
-        get_opportunity_amount(o)
-        for o in opportunities
-    ]
+    amounts = [get_opportunity_amount(o) for o in opportunities]
 
-    amounts = [
-        a for a in amounts
-        if a
-    ]
+    amounts = [a for a in amounts if a]
 
-    min_amt, max_amt = (
-        (min(amounts), max(amounts))
-        if amounts
-        else (0, 1)
-    )
+    min_amt, max_amt = (min(amounts), max(amounts)) if amounts else (0, 1)
 
     db.query(Recommendation).filter(
         Recommendation.researcher_id == req.researcher_id
@@ -335,29 +326,24 @@ def generate_recommendations(
 
     matching_engine = GrantMatchingRulesEngine()
 
-    interests = db.query(ResearchInterest).filter(
-        ResearchInterest.profile_id == profile.id
-    ).all()
+    interests = (
+        db.query(ResearchInterest)
+        .filter(ResearchInterest.profile_id == profile.id)
+        .all()
+    )
 
-    research_domains = [
-        i.domain_name
-        for i in interests
-    ]
+    research_domains = [i.domain_name for i in interests]
 
     if not research_domains:
         research_domains = [
             "Artificial Intelligence",
             "Biotechnology",
-            "Climate & CleanEnergy"
+            "Climate & CleanEnergy",
         ]
 
     career_stage = "Early-Career"
 
-    user_role = getattr(
-        profile.user,
-        "role",
-        None
-    )
+    user_role = getattr(profile.user, "role", None)
 
     if user_role == "startup_founder":
         career_stage = "Startup/SME"
@@ -370,37 +356,22 @@ def generate_recommendations(
         research_domains=research_domains,
         career_stage=career_stage,
         geography="Global",
-        funding_types=[
-            "Grant",
-            "Fellowship",
-            "Accelerator"
-        ],
+        funding_types=["Grant", "Fellowship", "Accelerator"],
         include_expired=False,
     )
 
     results = []
 
     for opp in opportunities:
-
         # Mayank's eligibility check
         eligibility_result = matching_engine.evaluate_opportunity(
-            opp,
-            match_request
+            opp, match_request
         )
 
-        eligible_value = (
-            1
-            if eligibility_result.is_eligible
-            else 0
-        )
+        eligible_value = 1 if eligibility_result.is_eligible else 0
 
         # Your recommendation engine
-        scores = compute_score(
-            profile_text,
-            opp,
-            min_amt,
-            max_amt
-        )
+        scores = compute_score(profile_text, opp, min_amt, max_amt)
 
         rec = Recommendation(
             researcher_id=req.researcher_id,
@@ -411,17 +382,13 @@ def generate_recommendations(
 
         db.add(rec)
 
-        results.append(
-            (opp, rec)
-        )
+        results.append((opp, rec))
 
     db.commit()
 
     ranked = sorted(
-        results,
-        key=lambda pair: pair[1].score,
-        reverse=True
-    )[:req.top_n]
+        results, key=lambda pair: pair[1].score, reverse=True
+    )[: req.top_n]
 
     return [
         RecommendationOut(
@@ -444,29 +411,23 @@ def generate_recommendations(
 
 
 @app.get(
-    "/recommendations/{researcher_id}",
-    response_model=list[RecommendationOut]
+    "/recommendations/{researcher_id}", response_model=list[RecommendationOut]
 )
 def get_recommendations(
     researcher_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),  # noqa: B008
 ):
-
     recs = (
         db.query(Recommendation)
-        .filter(
-            Recommendation.researcher_id == researcher_id
-        )
-        .order_by(
-            Recommendation.score.desc()
-        )
+        .filter(Recommendation.researcher_id == researcher_id)
+        .order_by(Recommendation.score.desc())
         .all()
     )
 
     if not recs:
         raise HTTPException(
             status_code=404,
-            detail="No recommendations found. Call /generate first."
+            detail="No recommendations found. Call /generate first.",
         )
 
     return [
