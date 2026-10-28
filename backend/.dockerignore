@@ -1,3 +1,6 @@
+venv
+.venv
+env
 __pycache__
 **/__pycache__
 **/__pycache__/*
@@ -9,3 +12,7 @@ __pycache__
 .pytest_cache
 **/.pytest_cache
 .env
+.git
+.gitignore
+tests
+node_modules
